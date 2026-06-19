@@ -1,6 +1,7 @@
 import requests
 from datetime import datetime, timedelta
 
+
 class KiwoomClient:
     def __init__(self, user_id, config_manager, host="https://api.kiwoom.com"):
         self.user_id = user_id
@@ -38,14 +39,14 @@ class KiwoomClient:
             res_json = res.json()
             
             if res_json.get("return_code", 0) != 0:
-                raise Exception(f"Failed to issue token: {res_json.get('return_msg')}")
+                raise Exception(f"Failed to issue token (code: {res_json.get('return_code')}): {res_json.get('return_msg')}")
                 
             new_token = res_json["token"]
             new_expires = res_json["expires_dt"]
             self.config_manager.save_token(self.user_id, new_token, new_expires)
             return new_token
 
-    def request_api(self, endpoint, method="POST", data=None, api_id=None, cont_yn="N", next_key=""):
+    def request_api(self, endpoint, method="POST", data=None, api_id=None, cont_yn="N", next_key="") -> tuple[dict, dict]:
         token = self.get_valid_token()
         url = f"{self.host}{endpoint}"
         headers = {
@@ -63,4 +64,13 @@ class KiwoomClient:
             res = requests.get(url, headers=headers, params=data)
         
         res.raise_for_status()
-        return res.json(), res.headers
+
+        try:
+            res_json = res.json()
+        except ValueError:
+            res_json = {}
+
+        if res_json.get("return_code", 0) != 0:
+            raise Exception(f"API Error (code: {res_json.get('return_code')}): {res_json.get('return_msg')}")
+
+        return res_json, res.headers

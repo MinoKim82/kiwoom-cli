@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from config import ConfigManager
 from client import KiwoomClient
 
+
 def test_token_auto_refresh_needed(requests_mock):
     # Given: 만료된 토큰 설정 및 ConfigManager 모킹
     class MockConfigManager:
@@ -117,4 +118,49 @@ def test_request_api_get(requests_mock):
     last_request = requests_mock.last_request
     assert last_request.headers.get("authorization") == "Bearer valid_token"
     assert last_request.qs == {"param1": ["value1"]}
+
+
+def test_token_auto_refresh_fail_with_error_code(requests_mock):
+    class MockConfigManager:
+        def load_credentials(self, user_id):
+            return {"appkey": "my_appkey", "secretkey": "my_secretkey"}
+        def load_token(self, user_id):
+            expired_time = (datetime.now() - timedelta(minutes=15)).strftime("%Y%m%d%H%M%S")
+            return {"token": "expired_token", "expires_dt": expired_time}
+        def save_token(self, user_id, token, expires_dt):
+            pass
+
+    mcm = MockConfigManager()
+    client = KiwoomClient(user_id="user1", config_manager=mcm, host="https://mockapi.kiwoom.com")
+
+    requests_mock.post("https://mockapi.kiwoom.com/oauth2/token", json={
+        "return_code": 9999,
+        "return_msg": "Invalid AppKey"
+    })
+
+    with pytest.raises(Exception) as excinfo:
+        client.get_valid_token()
+    assert "Failed to issue token (code: 9999): Invalid AppKey" in str(excinfo.value)
+
+
+def test_request_api_fail_with_error_code(requests_mock):
+    class MockConfigManager:
+        def load_credentials(self, user_id):
+            return {"appkey": "my_appkey", "secretkey": "my_secretkey"}
+        def load_token(self, user_id):
+            valid_time = (datetime.now() + timedelta(hours=1)).strftime("%Y%m%d%H%M%S")
+            return {"token": "valid_token", "expires_dt": valid_time}
+
+    mcm = MockConfigManager()
+    client = KiwoomClient(user_id="user1", config_manager=mcm, host="https://mockapi.kiwoom.com")
+
+    requests_mock.post(
+        "https://mockapi.kiwoom.com/v1/mock-endpoint",
+        json={"return_code": -100, "return_msg": "System Maintenance"}
+    )
+
+    with pytest.raises(Exception) as excinfo:
+        client.request_api(endpoint="/v1/mock-endpoint", method="POST")
+    assert "API Error (code: -100): System Maintenance" in str(excinfo.value)
+
 
