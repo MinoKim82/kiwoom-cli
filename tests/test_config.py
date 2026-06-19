@@ -4,6 +4,7 @@ import tempfile
 import pytest
 from config import ConfigManager
 
+
 def test_config_manager_load_and_save():
     with tempfile.TemporaryDirectory() as tmpdir:
         # Given: config.json 사전 생성

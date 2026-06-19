@@ -7,7 +7,7 @@ class ConfigManager:
             self.base_dir = os.path.expanduser("~/.kiwoom")
         else:
             self.base_dir = base_dir
-            
+
         os.makedirs(self.base_dir, exist_ok=True)
         self.config_path = os.path.join(self.base_dir, "config.json")
         self.tokens_path = os.path.join(self.base_dir, "tokens.json")
@@ -26,7 +26,10 @@ class ConfigManager:
         if not os.path.exists(self.tokens_path):
             return {}
         with open(self.tokens_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
+            try:
+                data = json.load(f)
+            except json.JSONDecodeError:
+                return {}
         return data.get(user_id, {})
 
     def save_token(self, user_id, token, expires_dt):
