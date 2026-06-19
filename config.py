@@ -1,6 +1,7 @@
 import os
 import json
 
+
 class ConfigManager:
     def __init__(self, base_dir=None):
         if base_dir is None:
