@@ -74,3 +74,60 @@ class KiwoomClient:
             raise Exception(f"API Error (code: {res_json.get('return_code')}): {res_json.get('return_msg')}")
 
         return res_json, res.headers
+
+    def get_accounts(self) -> list:
+        res_data, _ = self.request_api(
+            endpoint="/api/dostk/acnt",
+            method="POST",
+            data={},
+            api_id="ka00001"
+        )
+        acct = res_data.get("acctNo")
+        if acct:
+            return [acct]
+        return []
+
+    def get_balance(self, acct_no: str) -> dict:
+        all_holdings = []
+        cont_yn = "N"
+        next_key = ""
+        summary_data = {}
+
+        while True:
+            body = {
+                "qry_tp": "2",          # 개별 조회
+                "dmst_stex_tp": "KRX",  # 국내거래소
+                "acctNo": acct_no
+            }
+            res_json, headers = self.request_api(
+                endpoint="/api/dostk/acnt",
+                method="POST",
+                data=body,
+                api_id="kt00018",
+                cont_yn=cont_yn,
+                next_key=next_key
+            )
+
+            # 계좌 요약 수치는 첫 페이지 기준으로 파싱
+            if not summary_data:
+                summary_data = {
+                    "tot_pur_amt": res_json.get("tot_pur_amt", "0"),
+                    "tot_evlt_amt": res_json.get("tot_evlt_amt", "0"),
+                    "tot_evlt_pl": res_json.get("tot_evlt_pl", "0"),
+                    "tot_prft_rt": res_json.get("tot_prft_rt", "0"),
+                    "prsm_dpst_aset_amt": res_json.get("prsm_dpst_aset_amt", "0")
+                }
+
+            holdings = res_json.get("stk_cntr_remn", [])
+            all_holdings.extend(holdings)
+
+            # 연속조회 여부 및 키 추출
+            cont_yn = headers.get("cont-yn", "N")
+            next_key = headers.get("next-key", "")
+
+            if cont_yn != "Y" or not next_key:
+                break
+
+        summary_data["stk_cntr_remn"] = all_holdings
+        return summary_data
+
