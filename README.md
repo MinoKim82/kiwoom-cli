@@ -1,1 +1,1 @@
-# stock-kiwoom-cli
+# Kiwoom-CLI
