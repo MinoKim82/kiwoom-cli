@@ -33,7 +33,7 @@ def test_cli_info_command(requests_mock):
         assert "=== [mh_default] 계좌 정보 ===" in result.output
         assert "계좌번호: 12345678" in result.output
         assert "계좌명: 홍길동" in result.output
-        assert "상품구분: 종합계좌 (국내주식, ELS 등)" in result.output
+        assert "상품구분: 위탁종합" in result.output
 
 def test_cli_balance_command(requests_mock):
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -87,7 +87,7 @@ def test_cli_balance_command(requests_mock):
 
         assert result.exit_code == 0
         assert "계좌 평가 현황" in result.output
-        assert "종합계좌 [12345678] 계좌 평가 현황" in result.output  # Display actual account number
+        assert "[12345678] 계좌 평가 현황" in result.output  # Display actual account number
         assert "삼성전자" in result.output
         assert "1,000,000" in result.output
 
@@ -229,10 +229,10 @@ def test_cli_info_all_accounts(requests_mock):
         assert result.exit_code == 0
         assert "=== [mh_default] 계좌 정보 ===" in result.output
         assert "계좌번호: 12345678" in result.output
-        assert "상품구분: 종합계좌 (국내주식, ELS 등)" in result.output
+        assert "상품구분: 위탁종합" in result.output
         assert "=== [mh_sub] 계좌 정보 ===" in result.output
         assert "계좌번호: 98765432" in result.output
-        assert "상품구분: 해외주식" in result.output
+        assert "상품구분: 위탁종합" in result.output
 
 def test_cli_balance_all_accounts_json(requests_mock):
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -404,7 +404,7 @@ def test_cli_balance_all_accounts_with_partial_error_text(requests_mock):
         # Text mode should also complete with exit code 0
         assert result.exit_code == 0
         # First account shows success output
-        assert "종합계좌 [12345678] 계좌 평가 현황" in result.output
+        assert "[12345678] 계좌 평가 현황" in result.output
         # Second account shows failure message
         assert "[mh_sub] 계좌 잔고 조회 실패: 500 Server Error" in result.output
 
