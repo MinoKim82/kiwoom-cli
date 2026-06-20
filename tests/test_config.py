@@ -43,3 +43,24 @@ def test_config_manager_corrupted_json():
         cm.save_token("1234567890", "new_token", "20260620120000")
         token_info = cm.load_token("1234567890")
         assert token_info["token"] == "new_token"
+
+
+def test_config_manager_legacy_users_key():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        config_data = {
+            "users": {
+                "user1": {
+                    "appkey": "key123",
+                    "secretkey": "sec123"
+                }
+            }
+        }
+        with open(os.path.join(tmpdir, "config.json"), "w") as f:
+            json.dump(config_data, f)
+
+        cm = ConfigManager(base_dir=tmpdir)
+
+        with pytest.raises(KeyError) as excinfo:
+            cm.load_credentials("1234567890")
+        assert "기존 'users' 형식의 설정이 감지되었습니다" in str(excinfo.value)
+

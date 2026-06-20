@@ -19,6 +19,11 @@ class ConfigManager:
         with open(self.config_path, "r", encoding="utf-8") as f:
             data = json.load(f)
         accounts = data.get("accounts", {})
+        if not accounts and "users" in data:
+            raise KeyError(
+                "기존 'users' 형식의 설정이 감지되었습니다. "
+                "계좌 기반('accounts') 설정 형식으로 업데이트가 필요합니다."
+            )
         if account not in accounts:
             raise KeyError(f"Account {account} not found in configuration.")
         return accounts[account]
