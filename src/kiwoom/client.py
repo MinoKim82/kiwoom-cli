@@ -7,6 +7,7 @@ class KiwoomClient:
         self.account = account
         self.config_manager = config_manager
         self.host = host
+        self._accounts_cache = None
 
     def get_valid_token(self):
         token_info = self.config_manager.load_token(self.account)
@@ -76,6 +77,8 @@ class KiwoomClient:
         return res_json, res.headers
 
     def get_accounts(self) -> list:
+        if self._accounts_cache is not None:
+            return self._accounts_cache
         res_data, _ = self.request_api(
             endpoint="/api/dostk/acnt",
             method="POST",
@@ -83,9 +86,8 @@ class KiwoomClient:
             api_id="ka00001"
         )
         acct = res_data.get("acctNo")
-        if acct:
-            return [acct]
-        return []
+        self._accounts_cache = [acct] if acct else []
+        return self._accounts_cache
 
     def get_balance(self, acct_no: str = None) -> dict:
         if acct_no is None:

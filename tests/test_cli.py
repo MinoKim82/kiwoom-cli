@@ -142,6 +142,57 @@ def test_cli_balance_json_format(requests_mock):
         assert parsed["account"] == "mh_default"
         assert parsed["acct_no"] == "1234567890"  # Verify actual account number in json
         assert parsed["balance"]["tot_pur_amt"] == "1000000"
+        assert len(parsed["balance"]["acnt_evlt_remn_indv_tot"]) == 1
+
+
+def test_cli_balance_with_specific_acct(requests_mock):
+    with tempfile.TemporaryDirectory() as tmpdir:
+        config_data = {"accounts": {"mh_default": {"appkey": "key", "secretkey": "sec"}}}
+        with open(os.path.join(tmpdir, "config.json"), "w") as f:
+            json.dump(config_data, f)
+        
+        tokens_data = {"mh_default": {"token": "valid_token", "expires_dt": "20360101000000"}}
+        with open(os.path.join(tmpdir, "tokens.json"), "w") as f:
+            json.dump(tokens_data, f)
+
+        # Mock balance API only, since get_accounts is bypassed when --acct is specified
+        requests_mock.post("https://api.kiwoom.com/api/dostk/acnt", json={
+            "return_code": 0,
+            "tot_pur_amt": "1000000",
+            "tot_evlt_amt": "1200000",
+            "tot_evlt_pl": "200000",
+            "tot_prft_rt": "20.00",
+            "prsm_dpst_aset_amt": "1500000",
+            "acnt_evlt_remn_indv_tot": [
+                {
+                    "stk_cd": "A005930",
+                    "stk_nm": "삼성전자",
+                    "rmnd_qty": "10",
+                    "pur_pric": "50000",
+                    "cur_prc": "60000",
+                    "evltv_prft": "100000",
+                    "prft_rt": "20.00"
+                }
+            ]
+        })
+
+        runner = CliRunner()
+        result = runner.invoke(main, [
+            "--config-dir", tmpdir,
+            "--account", "mh_default",
+            "--format", "json",
+            "balance",
+            "--acct", "9876543210"
+        ])
+
+        assert result.exit_code == 0
+        parsed = json.loads(result.output)
+        assert parsed["account"] == "mh_default"
+        assert parsed["acct_no"] == "9876543210"
+        # Check that request sent specified account number
+        last_request = requests_mock.last_request
+        assert last_request.json()["acctNo"] == "9876543210"
+
 
 
 

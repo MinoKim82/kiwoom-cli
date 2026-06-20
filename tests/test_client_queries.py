@@ -67,3 +67,23 @@ def test_get_balance_pagination(requests_mock):
     assert balance["acnt_evlt_remn_indv_tot"][1]["stk_nm"] == "SK하이닉스"
     assert balance["tot_pur_amt"] == "10000"
 
+
+def test_get_balance_with_explicit_acct(requests_mock):
+    cm = MockConfigManager()
+    client = KiwoomClient(account="mh_default", config_manager=cm, host="https://mockapi.kiwoom.com")
+
+    # Mock balance API only (get_accounts is bypassed)
+    requests_mock.post(
+        "https://mockapi.kiwoom.com/api/dostk/acnt",
+        json={
+            "tot_pur_amt": "5000",
+            "acnt_evlt_remn_indv_tot": [{"stk_cd": "A005930", "stk_nm": "삼성전자"}],
+            "return_code": 0
+        }
+    )
+
+    balance = client.get_balance(acct_no="9876543210")
+    assert balance["acct_no"] == "9876543210"
+    assert balance["tot_pur_amt"] == "5000"
+
+

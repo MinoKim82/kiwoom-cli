@@ -27,7 +27,7 @@ def handle_error(ctx, error_msg, output_format):
 
 @click.group()
 @click.option("--config-dir", default=None, help="Directory path containing config.json")
-@click.option("--account", "-a", required=True, help="Account number to query")
+@click.option("--account", "-a", required=True, help="Account alias to query (defined in config.json)")
 @click.option("--format", "-f", default="text", type=click.Choice(["text", "json"]), help="Output format")
 @click.pass_context
 def main(ctx, config_dir, account, format):
@@ -62,8 +62,9 @@ def account(ctx):
         handle_error(ctx, str(e), fmt)
 
 @main.command()
+@click.option("--acct", default=None, help="Specific actual account number to query")
 @click.pass_context
-def balance(ctx):
+def balance(ctx, acct):
     """Enquire portfolio balance and details of the account"""
     account_alias = ctx.obj["account"]
     cm = ctx.obj["config_manager"]
@@ -71,7 +72,7 @@ def balance(ctx):
     client = KiwoomClient(account=account_alias, config_manager=cm)
 
     try:
-        res = client.get_balance()
+        res = client.get_balance(acct_no=acct)
         real_acct = res.get("acct_no", account_alias)
         
         if fmt == "json":
