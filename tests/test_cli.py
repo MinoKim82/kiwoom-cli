@@ -3,7 +3,7 @@ import json
 import tempfile
 from click.testing import CliRunner
 import requests_mock
-from cli import main
+from kiwoom.cli import main
 
 def test_cli_balance_command(requests_mock):
     with tempfile.TemporaryDirectory() as tmpdir:

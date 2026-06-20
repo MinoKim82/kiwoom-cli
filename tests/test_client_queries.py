@@ -1,6 +1,6 @@
 import pytest
 import requests_mock
-from client import KiwoomClient
+from kiwoom.client import KiwoomClient
 
 class MockConfigManager:
     def load_credentials(self, user_id):

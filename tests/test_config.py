@@ -2,7 +2,7 @@ import os
 import json
 import tempfile
 import pytest
-from config import ConfigManager
+from kiwoom.config import ConfigManager
 
 
 def test_config_manager_load_and_save():

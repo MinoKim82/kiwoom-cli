@@ -1,8 +1,8 @@
 import pytest
 import requests_mock
 from datetime import datetime, timedelta
-from config import ConfigManager
-from client import KiwoomClient
+from kiwoom.config import ConfigManager
+from kiwoom.client import KiwoomClient
 
 
 def test_token_auto_refresh_needed(requests_mock):
