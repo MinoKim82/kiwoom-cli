@@ -13,17 +13,17 @@ class ConfigManager:
         self.config_path = os.path.join(self.base_dir, "config.json")
         self.tokens_path = os.path.join(self.base_dir, "tokens.json")
 
-    def load_credentials(self, user_id):
+    def load_credentials(self, account):
         if not os.path.exists(self.config_path):
             raise FileNotFoundError(f"Config file not found at {self.config_path}")
         with open(self.config_path, "r", encoding="utf-8") as f:
             data = json.load(f)
-        users = data.get("users", {})
-        if user_id not in users:
-            raise KeyError(f"User {user_id} not found in configuration.")
-        return users[user_id]
+        accounts = data.get("accounts", {})
+        if account not in accounts:
+            raise KeyError(f"Account {account} not found in configuration.")
+        return accounts[account]
 
-    def load_token(self, user_id):
+    def load_token(self, account):
         if not os.path.exists(self.tokens_path):
             return {}
         with open(self.tokens_path, "r", encoding="utf-8") as f:
@@ -31,9 +31,9 @@ class ConfigManager:
                 data = json.load(f)
             except json.JSONDecodeError:
                 return {}
-        return data.get(user_id, {})
+        return data.get(account, {})
 
-    def save_token(self, user_id, token, expires_dt):
+    def save_token(self, account, token, expires_dt):
         data = {}
         if os.path.exists(self.tokens_path):
             with open(self.tokens_path, "r", encoding="utf-8") as f:
@@ -41,7 +41,7 @@ class ConfigManager:
                     data = json.load(f)
                 except json.JSONDecodeError:
                     data = {}
-        data[user_id] = {
+        data[account] = {
             "token": token,
             "expires_dt": expires_dt
         }
