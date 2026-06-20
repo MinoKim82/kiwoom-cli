@@ -41,23 +41,32 @@ def main(ctx, config_dir, account, format):
 
 @main.command()
 @click.pass_context
-def account(ctx):
-    """Enquire the actual account number of the alias"""
+def info(ctx):
+    """Enquire detailed account information of the alias"""
     account_alias = ctx.obj["account"]
     cm = ctx.obj["config_manager"]
     fmt = ctx.obj.get("format", "text")
     client = KiwoomClient(account=account_alias, config_manager=cm)
 
     try:
-        accts = client.get_accounts()
-        if not accts:
+        info_data = client.get_account_info()
+        acct_no = info_data.get("acctNo")
+        if not acct_no:
             handle_error(ctx, "연결된 실제 계좌가 없습니다.", fmt)
+        
         if fmt == "json":
-            click.echo(json.dumps({"account_alias": account_alias, "accounts": accts}, ensure_ascii=False))
+            click.echo(json.dumps({"account_alias": account_alias, "account_info": info_data}, ensure_ascii=False))
         else:
-            click.echo(f"=== [{account_alias}] 실제 계좌 목록 ===")
-            for idx, acct in enumerate(accts, 1):
-                click.echo(f" {idx}. 계좌번호: {acct}")
+            click.echo(f"=== [{account_alias}] 계좌 정보 ===")
+            click.echo(f" 계좌번호: {acct_no}")
+            
+            acct_nm = info_data.get("acctNm")
+            if acct_nm:
+                click.echo(f" 계좌명: {acct_nm}")
+                
+            acct_tp_nm = info_data.get("acctTpNm")
+            if acct_tp_nm:
+                click.echo(f" 상품구분: {acct_tp_nm}")
     except Exception as e:
         handle_error(ctx, str(e), fmt)
 

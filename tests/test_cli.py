@@ -5,7 +5,7 @@ from click.testing import CliRunner
 import requests_mock
 from kiwoom.cli import main
 
-def test_cli_account_command(requests_mock):
+def test_cli_info_command(requests_mock):
     with tempfile.TemporaryDirectory() as tmpdir:
         config_data = {"accounts": {"mh_default": {"appkey": "key", "secretkey": "sec"}}}
         with open(os.path.join(tmpdir, "config.json"), "w") as f:
@@ -17,6 +17,8 @@ def test_cli_account_command(requests_mock):
 
         requests_mock.post("https://api.kiwoom.com/api/dostk/acnt", json={
             "acctNo": "1234567890",
+            "acctNm": "홍길동",
+            "acctTpNm": "위탁종합",
             "return_code": 0
         })
 
@@ -24,12 +26,14 @@ def test_cli_account_command(requests_mock):
         result = runner.invoke(main, [
             "--config-dir", tmpdir,
             "--account", "mh_default",
-            "account"
+            "info"
         ])
 
         assert result.exit_code == 0
-        assert "=== [mh_default] 실제 계좌 목록 ===" in result.output
-        assert "1234567890" in result.output
+        assert "=== [mh_default] 계좌 정보 ===" in result.output
+        assert "계좌번호: 1234567890" in result.output
+        assert "계좌명: 홍길동" in result.output
+        assert "상품구분: 위탁종합" in result.output
 
 def test_cli_balance_command(requests_mock):
     with tempfile.TemporaryDirectory() as tmpdir:
