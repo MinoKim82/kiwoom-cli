@@ -196,7 +196,86 @@ def test_cli_balance_with_specific_acct(requests_mock):
         # Check that request sent specified account number
         last_request = requests_mock.last_request
         assert last_request.json()["acctNo"] == "9876543210"
+def test_cli_info_all_accounts(requests_mock):
+    with tempfile.TemporaryDirectory() as tmpdir:
+        config_data = {
+            "accounts": {
+                "mh_default": {"appkey": "key", "secretkey": "sec"},
+                "mh_sub": {"appkey": "key2", "secretkey": "sec2"}
+            }
+        }
+        with open(os.path.join(tmpdir, "config.json"), "w") as f:
+            json.dump(config_data, f)
+        
+        tokens_data = {
+            "mh_default": {"token": "valid_token1", "expires_dt": "20360101000000"},
+            "mh_sub": {"token": "valid_token2", "expires_dt": "20360101000000"}
+        }
+        with open(os.path.join(tmpdir, "tokens.json"), "w") as f:
+            json.dump(tokens_data, f)
 
+        # Mock account responses for both aliases
+        requests_mock.post("https://api.kiwoom.com/api/dostk/acnt", [
+            {"json": {"acctNo": "1234567890", "acctNm": "홍길동", "acctTpNm": "위탁종합", "return_code": 0}},
+            {"json": {"acctNo": "9876543210", "acctNm": "이몽룡", "acctTpNm": "위탁종합", "return_code": 0}}
+        ])
 
+        runner = CliRunner()
+        result = runner.invoke(main, [
+            "--config-dir", tmpdir,
+            "info"
+        ])
 
+        assert result.exit_code == 0
+        assert "=== [mh_default] 계좌 정보 ===" in result.output
+        assert "계좌번호: 1234567890" in result.output
+        assert "=== [mh_sub] 계좌 정보 ===" in result.output
+        assert "계좌번호: 9876543210" in result.output
 
+def test_cli_balance_all_accounts_json(requests_mock):
+    with tempfile.TemporaryDirectory() as tmpdir:
+        config_data = {
+            "accounts": {
+                "mh_default": {"appkey": "key", "secretkey": "sec"},
+                "mh_sub": {"appkey": "key2", "secretkey": "sec2"}
+            }
+        }
+        with open(os.path.join(tmpdir, "config.json"), "w") as f:
+            json.dump(config_data, f)
+        
+        tokens_data = {
+            "mh_default": {"token": "valid_token1", "expires_dt": "20360101000000"},
+            "mh_sub": {"token": "valid_token2", "expires_dt": "20360101000000"}
+        }
+        with open(os.path.join(tmpdir, "tokens.json"), "w") as f:
+            json.dump(tokens_data, f)
+
+        # Mock API endpoints in sequence:
+        # 1. mh_default get_accounts()
+        # 2. mh_default get_balance()
+        # 3. mh_sub get_accounts()
+        # 4. mh_sub get_balance()
+        requests_mock.post("https://api.kiwoom.com/api/dostk/acnt", [
+            {"json": {"acctNo": "1234567890", "return_code": 0}},
+            {"json": {"acctNo": "1234567890", "tot_pur_amt": "1000", "acnt_evlt_remn_indv_tot": [], "return_code": 0}},
+            {"json": {"acctNo": "9876543210", "return_code": 0}},
+            {"json": {"acctNo": "9876543210", "tot_pur_amt": "2000", "acnt_evlt_remn_indv_tot": [], "return_code": 0}}
+        ])
+
+        runner = CliRunner()
+        result = runner.invoke(main, [
+            "--config-dir", tmpdir,
+            "--format", "json",
+            "balance"
+        ])
+
+        assert result.exit_code == 0
+        parsed = json.loads(result.output)
+        assert isinstance(parsed, list)
+        assert len(parsed) == 2
+        assert parsed[0]["account"] == "mh_default"
+        assert parsed[0]["acct_no"] == "1234567890"
+        assert parsed[0]["balance"]["tot_pur_amt"] == "1000"
+        assert parsed[1]["account"] == "mh_sub"
+        assert parsed[1]["acct_no"] == "9876543210"
+        assert parsed[1]["balance"]["tot_pur_amt"] == "2000"

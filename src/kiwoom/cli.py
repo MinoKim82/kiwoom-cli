@@ -27,7 +27,7 @@ def handle_error(ctx, error_msg, output_format):
 
 @click.group()
 @click.option("--config-dir", default=None, help="Directory path containing config.json")
-@click.option("--account", "-a", required=True, help="Account alias to query (defined in config.json)")
+@click.option("--account", "-a", required=False, help="Account alias to query (defined in config.json)")
 @click.option("--format", "-f", default="text", type=click.Choice(["text", "json"]), help="Output format")
 @click.pass_context
 def main(ctx, config_dir, account, format):
@@ -42,57 +42,111 @@ def main(ctx, config_dir, account, format):
 @main.command()
 @click.pass_context
 def info(ctx):
-    """Enquire detailed account information of the alias"""
-    account_alias = ctx.obj["account"]
+    """Enquire detailed account information of the alias(es)"""
+    account_alias = ctx.obj.get("account")
     cm = ctx.obj["config_manager"]
     fmt = ctx.obj.get("format", "text")
-    client = KiwoomClient(account=account_alias, config_manager=cm)
 
-    try:
-        info_data = client.get_account_info()
-        acct_no = info_data.get("acctNo")
-        if not acct_no:
-            handle_error(ctx, "연결된 실제 계좌가 없습니다.", fmt)
-        
-        if fmt == "json":
-            click.echo(json.dumps({"account_alias": account_alias, "account_info": info_data}, ensure_ascii=False))
+    aliases = [account_alias] if account_alias else cm.get_all_account_aliases()
+    if not aliases:
+        handle_error(ctx, "설정된 계좌 별칭이 없거나 config.json을 찾을 수 없습니다.", fmt)
+
+    results = []
+    for alias in aliases:
+        client = KiwoomClient(account=alias, config_manager=cm)
+        try:
+            info_data = client.get_account_info()
+            results.append((alias, info_data))
+        except Exception as e:
+            results.append((alias, {"error": str(e)}))
+
+    if fmt == "json":
+        out_list = []
+        for alias, data in results:
+            out_list.append({
+                "account_alias": alias,
+                "account_info": data
+            })
+        if account_alias:
+            click.echo(json.dumps(out_list[0], ensure_ascii=False))
         else:
-            click.echo(f"=== [{account_alias}] 계좌 정보 ===")
-            click.echo(f" 계좌번호: {acct_no}")
+            click.echo(json.dumps(out_list, ensure_ascii=False))
+        return
+
+    for idx, (alias, data) in enumerate(results):
+        if idx > 0:
+            click.echo("\n" + "-" * 50)
+        if "error" in data:
+            click.echo(f"=== [{alias}] 계좌 정보 조회 실패 ===")
+            click.echo(f" 에러: {data['error']}")
+            continue
+
+        acct_no = data.get("acctNo")
+        if not acct_no:
+            click.echo(f"=== [{alias}] 계좌 정보 없음 ===")
+            continue
+
+        click.echo(f"=== [{alias}] 계좌 정보 ===")
+        click.echo(f" 계좌번호: {acct_no}")
+        
+        acct_nm = data.get("acctNm")
+        if acct_nm:
+            click.echo(f" 계좌명: {acct_nm}")
             
-            acct_nm = info_data.get("acctNm")
-            if acct_nm:
-                click.echo(f" 계좌명: {acct_nm}")
-                
-            acct_tp_nm = info_data.get("acctTpNm")
-            if acct_tp_nm:
-                click.echo(f" 상품구분: {acct_tp_nm}")
-    except Exception as e:
-        handle_error(ctx, str(e), fmt)
+        acct_tp_nm = data.get("acctTpNm")
+        if acct_tp_nm:
+            click.echo(f" 상품구분: {acct_tp_nm}")
 
 @main.command()
 @click.option("--acct", default=None, help="Specific actual account number to query")
 @click.pass_context
 def balance(ctx, acct):
-    """Enquire portfolio balance and details of the account"""
-    account_alias = ctx.obj["account"]
+    """Enquire portfolio balance and details of the account(s)"""
+    account_alias = ctx.obj.get("account")
     cm = ctx.obj["config_manager"]
     fmt = ctx.obj.get("format", "text")
-    client = KiwoomClient(account=account_alias, config_manager=cm)
 
-    try:
-        res = client.get_balance(acct_no=acct)
-        real_acct = res.get("acct_no", account_alias)
-        
-        if fmt == "json":
-            out = {
-                "account": account_alias,
-                "acct_no": real_acct,
-                "balance": res
-            }
-            click.echo(json.dumps(out, ensure_ascii=False))
-            return
+    aliases = [account_alias] if account_alias else cm.get_all_account_aliases()
+    if not aliases:
+        handle_error(ctx, "설정된 계좌 별칭이 없거나 config.json을 찾을 수 없습니다.", fmt)
 
+    results = []
+    for alias in aliases:
+        client = KiwoomClient(account=alias, config_manager=cm)
+        try:
+            res = client.get_balance(acct_no=acct)
+            results.append((alias, res))
+        except Exception as e:
+            results.append((alias, {"error": str(e)}))
+
+    if fmt == "json":
+        out_list = []
+        for alias, res in results:
+            if "error" in res:
+                out_list.append({
+                    "account": alias,
+                    "error": res["error"]
+                })
+            else:
+                out_list.append({
+                    "account": alias,
+                    "acct_no": res.get("acct_no", alias),
+                    "balance": res
+                })
+        if account_alias:
+            click.echo(json.dumps(out_list[0], ensure_ascii=False))
+        else:
+            click.echo(json.dumps(out_list, ensure_ascii=False))
+        return
+
+    for idx, (alias, res) in enumerate(results):
+        if idx > 0:
+            click.echo("\n" + "=" * 90)
+        if "error" in res:
+            click.echo(f"\n[{alias}] 계좌 잔고 조회 실패: {res['error']}")
+            continue
+
+        real_acct = res.get("acct_no", alias)
         click.echo("\n" + "=" * 50)
         click.echo(f"  [{real_acct}] 계좌 평가 현황")
         click.echo("=" * 50)
@@ -107,7 +161,7 @@ def balance(ctx, acct):
         holdings = res.get("acnt_evlt_remn_indv_tot", [])
         if not holdings:
             click.echo("\n보유 주식이 없습니다.")
-            return
+            continue
 
         click.echo("\n" + "=" * 90)
         click.echo(f"  [{real_acct}] 보유 종목 현황")
@@ -127,9 +181,6 @@ def balance(ctx, acct):
             
             click.echo(f"{code:<8} | {name:<16} | {qty:<8} | {pur_uv:<10} | {cur_prc:<10} | {pl_amt_str:>12} | {pl_rt:>8}")
         click.echo("=" * 90)
-
-    except Exception as e:
-        handle_error(ctx, str(e), fmt)
 
 if __name__ == "__main__":
     main()
