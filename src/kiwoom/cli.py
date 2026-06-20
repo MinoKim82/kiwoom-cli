@@ -20,14 +20,16 @@ def format_percent(val):
 @click.group()
 @click.option("--config-dir", default=None, help="Directory path containing config.json")
 @click.option("--user", "-u", required=True, help="User ID to query")
+@click.option("--format", "-f", default="text", type=click.Choice(["text", "json"]), help="Output format")
 @click.pass_context
-def main(ctx, config_dir, user):
+def main(ctx, config_dir, user, format):
     """Kiwoom REST API CLI Tool"""
     # config manager 초기화 및 context 전달
     cm = ConfigManager(base_dir=config_dir)
     ctx.obj = {
         "user_id": user,
-        "config_manager": cm
+        "config_manager": cm,
+        "format": format
     }
 
 @main.command()
@@ -36,15 +38,24 @@ def accounts(ctx):
     """Enquire accounts connected to the user token"""
     user_id = ctx.obj["user_id"]
     cm = ctx.obj["config_manager"]
+    fmt = ctx.obj.get("format", "text")
     client = KiwoomClient(user_id=user_id, config_manager=cm)
     
     try:
         accts = client.get_accounts()
-        click.echo(f"=== [{user_id}] 계좌 목록 ===")
-        for idx, acct in enumerate(accts, 1):
-            click.echo(f" {idx}. 계좌번호: {acct}")
+        if fmt == "json":
+            import json
+            click.echo(json.dumps({"accounts": accts}, ensure_ascii=False))
+        else:
+            click.echo(f"=== [{user_id}] 계좌 목록 ===")
+            for idx, acct in enumerate(accts, 1):
+                click.echo(f" {idx}. 계좌번호: {acct}")
     except Exception as e:
-        click.echo(f"Error: {e}", err=True)
+        if fmt == "json":
+            import json
+            click.echo(json.dumps({"error": str(e)}, ensure_ascii=False), err=True)
+        else:
+            click.echo(f"Error: {e}", err=True)
 
 @main.command()
 @click.option("--acct", default=None, help="Specific account number to query")
@@ -53,6 +64,7 @@ def balance(ctx, acct):
     """Enquire portfolio balance and details of the account"""
     user_id = ctx.obj["user_id"]
     cm = ctx.obj["config_manager"]
+    fmt = ctx.obj.get("format", "text")
     client = KiwoomClient(user_id=user_id, config_manager=cm)
 
     try:
@@ -60,12 +72,26 @@ def balance(ctx, acct):
         if not acct:
             accts = client.get_accounts()
             if not accts:
-                click.echo("Error: 연결된 계좌가 없습니다.", err=True)
+                if fmt == "json":
+                    import json
+                    click.echo(json.dumps({"error": "연결된 계좌가 없습니다."}, ensure_ascii=False), err=True)
+                else:
+                    click.echo("Error: 연결된 계좌가 없습니다.", err=True)
                 return
             acct = accts[0]
 
         res = client.get_balance(acct)
         
+        if fmt == "json":
+            import json
+            out = {
+                "user_id": user_id,
+                "acct_no": acct,
+                "balance": res
+            }
+            click.echo(json.dumps(out, ensure_ascii=False))
+            return
+
         click.echo("\n" + "=" * 50)
         click.echo(f"  [{user_id}] 계좌 평가 현황")
         click.echo("=" * 50)
@@ -103,7 +129,11 @@ def balance(ctx, acct):
         click.echo("=" * 90)
 
     except Exception as e:
-        click.echo(f"Error: {e}", err=True)
+        if fmt == "json":
+            import json
+            click.echo(json.dumps({"error": str(e)}, ensure_ascii=False), err=True)
+        else:
+            click.echo(f"Error: {e}", err=True)
 
 if __name__ == "__main__":
     main()
