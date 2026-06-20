@@ -70,16 +70,18 @@ pip install -e .[dev]
 
 모든 명령어는 기본적으로 `--account` (또는 `-a`) 옵션을 필수로 요구합니다.
 
-### 3.1. 실제 계좌번호 조회 (`account`)
-해당 계좌 별칭(alias)과 매핑된 실제 계좌번호 목록을 가져옵니다.
+### 3.1. 계좌 상세 정보 조회 (`info`)
+해당 계좌 별칭(alias)과 매핑된 실제 계좌번호 및 상세 정보를 가져옵니다.
 
 ```bash
-kiwoom --account mh_default account
+kiwoom --account mh_default info
 ```
 * **출력 예시**:
   ```text
-  === [mh_default] 실제 계좌 목록 ===
-   1. 계좌번호: 1234567890
+  === [mh_default] 계좌 정보 ===
+   계좌번호: 1234567890
+   계좌명: 홍길동
+   상품구분: 위탁종합
   ```
 
 ### 3.2. 평가 잔고 및 보유 종목 조회 (`balance`)
