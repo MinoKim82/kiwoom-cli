@@ -75,9 +75,24 @@ class KiwoomClient:
 
         return res_json, res.headers
 
+    def get_accounts(self) -> list:
+        res_data, _ = self.request_api(
+            endpoint="/api/dostk/acnt",
+            method="POST",
+            data={},
+            api_id="ka00001"
+        )
+        acct = res_data.get("acctNo")
+        if acct:
+            return [acct]
+        return []
+
     def get_balance(self, acct_no: str = None) -> dict:
         if acct_no is None:
-            acct_no = self.account
+            accts = self.get_accounts()
+            if not accts:
+                raise Exception("연결된 실제 계좌 번호를 찾을 수 없습니다.")
+            acct_no = accts[0]
 
         all_holdings = []
         cont_yn = "N"
@@ -86,8 +101,8 @@ class KiwoomClient:
 
         while True:
             body = {
-                "qry_tp": "2",          # 개별 조회
-                "dmst_stex_tp": "KRX",  # 국내거래소
+                "qry_tp": "2",
+                "dmst_stex_tp": "KRX",
                 "acctNo": acct_no
             }
             res_json, headers = self.request_api(
@@ -102,6 +117,7 @@ class KiwoomClient:
             # 계좌 요약 수치는 첫 페이지 기준으로 파싱
             if not summary_data:
                 summary_data = {
+                    "acct_no": acct_no,
                     "tot_pur_amt": res_json.get("tot_pur_amt", "0"),
                     "tot_evlt_amt": res_json.get("tot_evlt_amt", "0"),
                     "tot_evlt_pl": res_json.get("tot_evlt_pl", "0"),

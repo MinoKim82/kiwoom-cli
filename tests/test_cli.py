@@ -27,25 +27,37 @@ def test_cli_balance_command(requests_mock):
         with open(os.path.join(tmpdir, "tokens.json"), "w") as f:
             json.dump(tokens_data, f)
 
-        requests_mock.post("https://api.kiwoom.com/api/dostk/acnt", json={
-            "return_code": 0,
-            "tot_pur_amt": "1000000",
-            "tot_evlt_amt": "1200000",
-            "tot_evlt_pl": "200000",
-            "tot_prft_rt": "20.00",
-            "prsm_dpst_aset_amt": "1500000",
-            "acnt_evlt_remn_indv_tot": [
-                {
-                    "stk_cd": "A005930",
-                    "stk_nm": "삼성전자",
-                    "rmnd_qty": "10",
-                    "pur_pric": "50000",
-                    "cur_prc": "60000",
-                    "evltv_prft": "100000",
-                    "prft_rt": "20.00"
-                }
-            ]
-        })
+        requests_mock.post("https://api.kiwoom.com/api/dostk/acnt", [
+            {
+                "json": {
+                    "acctNo": "1234567890",
+                    "return_code": 0
+                },
+                "status_code": 200
+            },
+            {
+                "json": {
+                    "return_code": 0,
+                    "tot_pur_amt": "1000000",
+                    "tot_evlt_amt": "1200000",
+                    "tot_evlt_pl": "200000",
+                    "tot_prft_rt": "20.00",
+                    "prsm_dpst_aset_amt": "1500000",
+                    "acnt_evlt_remn_indv_tot": [
+                        {
+                            "stk_cd": "A005930",
+                            "stk_nm": "삼성전자",
+                            "rmnd_qty": "10",
+                            "pur_pric": "50000",
+                            "cur_prc": "60000",
+                            "evltv_prft": "100000",
+                            "prft_rt": "20.00"
+                        }
+                    ]
+                },
+                "status_code": 200
+            }
+        ])
 
         runner = CliRunner()
         result = runner.invoke(main, [
@@ -69,25 +81,37 @@ def test_cli_balance_json_format(requests_mock):
         with open(os.path.join(tmpdir, "tokens.json"), "w") as f:
             json.dump(tokens_data, f)
 
-        requests_mock.post("https://api.kiwoom.com/api/dostk/acnt", json={
-            "return_code": 0,
-            "tot_pur_amt": "1000000",
-            "tot_evlt_amt": "1200000",
-            "tot_evlt_pl": "200000",
-            "tot_prft_rt": "20.00",
-            "prsm_dpst_aset_amt": "1500000",
-            "acnt_evlt_remn_indv_tot": [
-                {
-                    "stk_cd": "A005930",
-                    "stk_nm": "삼성전자",
-                    "rmnd_qty": "10",
-                    "pur_pric": "50000",
-                    "cur_prc": "60000",
-                    "evltv_prft": "100000",
-                    "prft_rt": "20.00"
-                }
-            ]
-        })
+        requests_mock.post("https://api.kiwoom.com/api/dostk/acnt", [
+            {
+                "json": {
+                    "acctNo": "1234567890",
+                    "return_code": 0
+                },
+                "status_code": 200
+            },
+            {
+                "json": {
+                    "return_code": 0,
+                    "tot_pur_amt": "1000000",
+                    "tot_evlt_amt": "1200000",
+                    "tot_evlt_pl": "200000",
+                    "tot_prft_rt": "20.00",
+                    "prsm_dpst_aset_amt": "1500000",
+                    "acnt_evlt_remn_indv_tot": [
+                        {
+                            "stk_cd": "A005930",
+                            "stk_nm": "삼성전자",
+                            "rmnd_qty": "10",
+                            "pur_pric": "50000",
+                            "cur_prc": "60000",
+                            "evltv_prft": "100000",
+                            "prft_rt": "20.00"
+                        }
+                    ]
+                },
+                "status_code": 200
+            }
+        ])
 
         runner = CliRunner()
         result = runner.invoke(main, [
