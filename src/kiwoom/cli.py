@@ -40,12 +40,13 @@ def main(ctx, config_dir, account, format):
     }
 
 @main.command()
+@click.option("--format", "-f", default=None, type=click.Choice(["text", "json"]), help="Output format override")
 @click.pass_context
-def info(ctx):
+def info(ctx, format):
     """Enquire detailed account information of the alias(es)"""
     account_alias = ctx.obj.get("account")
     cm = ctx.obj["config_manager"]
-    fmt = ctx.obj.get("format", "text")
+    fmt = format if format is not None else ctx.obj.get("format", "text")
 
     aliases = [account_alias] if account_alias else cm.get_all_account_aliases()
     if not aliases:
@@ -101,12 +102,13 @@ def info(ctx):
 
 @main.command()
 @click.option("--acct", default=None, help="Specific actual account number to query")
+@click.option("--format", "-f", default=None, type=click.Choice(["text", "json"]), help="Output format override")
 @click.pass_context
-def balance(ctx, acct):
+def balance(ctx, acct, format):
     """Enquire portfolio balance and details of the account(s)"""
     account_alias = ctx.obj.get("account")
     cm = ctx.obj["config_manager"]
-    fmt = ctx.obj.get("format", "text")
+    fmt = format if format is not None else ctx.obj.get("format", "text")
 
     aliases = [account_alias] if account_alias else cm.get_all_account_aliases()
     if not aliases:

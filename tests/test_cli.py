@@ -405,3 +405,53 @@ def test_cli_balance_all_accounts_with_partial_error_text(requests_mock):
         assert "[1234567890] 계좌 평가 현황" in result.output
         # Second account shows failure message
         assert "[mh_sub] 계좌 잔고 조회 실패: 500 Server Error" in result.output
+
+def test_cli_subcommand_format_override(requests_mock):
+    with tempfile.TemporaryDirectory() as tmpdir:
+        config_data = {"accounts": {"mh_default": {"appkey": "key", "secretkey": "sec"}}}
+        with open(os.path.join(tmpdir, "config.json"), "w") as f:
+            json.dump(config_data, f)
+        
+        tokens_data = {"mh_default": {"token": "valid_token", "expires_dt": "20360101000000"}}
+        with open(os.path.join(tmpdir, "tokens.json"), "w") as f:
+            json.dump(tokens_data, f)
+
+        # Mock API for get_accounts and get_balance
+        requests_mock.post("https://api.kiwoom.com/api/dostk/acnt", [
+            {"json": {"acctNo": "1234567890", "return_code": 0}},
+            {"json": {"acctNo": "1234567890", "tot_pur_amt": "7777", "acnt_evlt_remn_indv_tot": [], "return_code": 0}}
+        ])
+
+        runner = CliRunner()
+        
+        # 1. Test balance command with -f json option placed AFTER the command
+        result_bal = runner.invoke(main, [
+            "--config-dir", tmpdir,
+            "--account", "mh_default",
+            "balance",
+            "-f", "json"
+        ])
+        assert result_bal.exit_code == 0
+        parsed_bal = json.loads(result_bal.output)
+        assert parsed_bal["account"] == "mh_default"
+        assert parsed_bal["balance"]["tot_pur_amt"] == "7777"
+
+        # Mock API for get_account_info
+        requests_mock.post("https://api.kiwoom.com/api/dostk/acnt", json={
+            "acctNo": "1234567890",
+            "acctNm": "홍길동",
+            "acctTpNm": "위탁종합",
+            "return_code": 0
+        })
+
+        # 2. Test info command with --format json option placed AFTER the command
+        result_info = runner.invoke(main, [
+            "--config-dir", tmpdir,
+            "--account", "mh_default",
+            "info",
+            "--format", "json"
+        ])
+        assert result_info.exit_code == 0
+        parsed_info = json.loads(result_info.output)
+        assert parsed_info["account_alias"] == "mh_default"
+        assert parsed_info["account_info"]["acctNm"] == "홍길동"
