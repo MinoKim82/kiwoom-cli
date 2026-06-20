@@ -1,4 +1,5 @@
 import click
+import json
 import os
 from kiwoom.config import ConfigManager
 from kiwoom.client import KiwoomClient
@@ -16,6 +17,13 @@ def format_percent(val):
         return f"{sign}{val_float:.2f}%"
     except (ValueError, TypeError):
         return val
+
+def handle_error(ctx, error_msg, output_format):
+    if output_format == "json":
+        click.echo(json.dumps({"error": error_msg}, ensure_ascii=False), err=True)
+    else:
+        click.echo(f"Error: {error_msg}", err=True)
+    ctx.exit(1)
 
 @click.group()
 @click.option("--config-dir", default=None, help="Directory path containing config.json")
@@ -43,19 +51,16 @@ def accounts(ctx):
     
     try:
         accts = client.get_accounts()
+        if not accts:
+            handle_error(ctx, "연결된 계좌가 없습니다.", fmt)
         if fmt == "json":
-            import json
             click.echo(json.dumps({"accounts": accts}, ensure_ascii=False))
         else:
             click.echo(f"=== [{user_id}] 계좌 목록 ===")
             for idx, acct in enumerate(accts, 1):
                 click.echo(f" {idx}. 계좌번호: {acct}")
     except Exception as e:
-        if fmt == "json":
-            import json
-            click.echo(json.dumps({"error": str(e)}, ensure_ascii=False), err=True)
-        else:
-            click.echo(f"Error: {e}", err=True)
+        handle_error(ctx, str(e), fmt)
 
 @main.command()
 @click.option("--acct", default=None, help="Specific account number to query")
@@ -72,18 +77,12 @@ def balance(ctx, acct):
         if not acct:
             accts = client.get_accounts()
             if not accts:
-                if fmt == "json":
-                    import json
-                    click.echo(json.dumps({"error": "연결된 계좌가 없습니다."}, ensure_ascii=False), err=True)
-                else:
-                    click.echo("Error: 연결된 계좌가 없습니다.", err=True)
-                return
+                handle_error(ctx, "연결된 계좌가 없습니다.", fmt)
             acct = accts[0]
 
         res = client.get_balance(acct)
         
         if fmt == "json":
-            import json
             out = {
                 "user_id": user_id,
                 "acct_no": acct,
@@ -129,11 +128,7 @@ def balance(ctx, acct):
         click.echo("=" * 90)
 
     except Exception as e:
-        if fmt == "json":
-            import json
-            click.echo(json.dumps({"error": str(e)}, ensure_ascii=False), err=True)
-        else:
-            click.echo(f"Error: {e}", err=True)
+        handle_error(ctx, str(e), fmt)
 
 if __name__ == "__main__":
     main()

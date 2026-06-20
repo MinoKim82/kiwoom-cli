@@ -147,3 +147,37 @@ def test_cli_balance_json_format(requests_mock):
         assert parsed["acct_no"] == "1234567890"
         assert parsed["balance"]["tot_pur_amt"] == "1000000"
         assert len(parsed["balance"]["acnt_evlt_remn_indv_tot"]) == 1
+
+
+def test_cli_accounts_json_error(requests_mock):
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Given: config.json 및 tokens.json 생성
+        config_data = {"users": {"user1": {"appkey": "key", "secretkey": "sec"}}}
+        with open(os.path.join(tmpdir, "config.json"), "w") as f:
+            json.dump(config_data, f)
+        
+        tokens_data = {"user1": {"token": "valid_token", "expires_dt": "20360101000000"}}
+        with open(os.path.join(tmpdir, "tokens.json"), "w") as f:
+            json.dump(tokens_data, f)
+
+        # API Mocking
+        requests_mock.post("https://api.kiwoom.com/api/dostk/acnt", json={
+            "return_code": 999,
+            "return_msg": "인증에 실패하였습니다."
+        })
+
+        # When: Click CliRunner 실행 (--format json 지정)
+        runner = CliRunner()
+        result = runner.invoke(main, [
+            "--config-dir", tmpdir,
+            "--user", "user1",
+            "--format", "json",
+            "accounts"
+        ])
+
+        # Then: 결과가 JSON 형태의 에러인지 검증
+        assert result.exit_code == 1
+        parsed = json.loads(result.output)
+        assert "error" in parsed
+        assert "API Error (code: 999): 인증에 실패하였습니다." in parsed["error"]
+
