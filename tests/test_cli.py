@@ -7,7 +7,7 @@ from kiwoom.cli import main
 
 
 
-def test_cli_balances_command(requests_mock):
+def test_cli_balance_command(requests_mock):
     with tempfile.TemporaryDirectory() as tmpdir:
         config_data = {"accounts": {"mh_default": {"appkey": "key", "secretkey": "sec"}}}
         with open(os.path.join(tmpdir, "config.json"), "w") as f:
@@ -54,7 +54,7 @@ def test_cli_balances_command(requests_mock):
         result = runner.invoke(main, [
             "--config-dir", tmpdir,
             "--account", "mh_default",
-            "balances"
+            "balance"
         ])
 
         assert result.exit_code == 0
@@ -63,7 +63,7 @@ def test_cli_balances_command(requests_mock):
         assert "삼성전자" in result.output
         assert "1,000,000" in result.output
 
-def test_cli_balances_json_format(requests_mock):
+def test_cli_balance_json_format(requests_mock):
     with tempfile.TemporaryDirectory() as tmpdir:
         config_data = {"accounts": {"mh_default": {"appkey": "key", "secretkey": "sec"}}}
         with open(os.path.join(tmpdir, "config.json"), "w") as f:
@@ -110,7 +110,7 @@ def test_cli_balances_json_format(requests_mock):
             "--config-dir", tmpdir,
             "--account", "mh_default",
             "--format", "json",
-            "balances"
+            "balance"
         ])
 
         assert result.exit_code == 0
@@ -121,7 +121,7 @@ def test_cli_balances_json_format(requests_mock):
         assert len(parsed["balance"]["acnt_evlt_remn_indv_tot"]) == 1
 
 
-def test_cli_balances_with_specific_acct(requests_mock):
+def test_cli_balance_with_specific_acct(requests_mock):
     with tempfile.TemporaryDirectory() as tmpdir:
         config_data = {"accounts": {"mh_default": {"appkey": "key", "secretkey": "sec"}}}
         with open(os.path.join(tmpdir, "config.json"), "w") as f:
@@ -157,7 +157,7 @@ def test_cli_balances_with_specific_acct(requests_mock):
             "--config-dir", tmpdir,
             "--account", "mh_default",
             "--format", "json",
-            "balances",
+            "balance",
             "--acct", "9876543210"
         ])
 
@@ -170,7 +170,7 @@ def test_cli_balances_with_specific_acct(requests_mock):
         assert last_request.json()["acctNo"] == "9876543210"
 
 
-def test_cli_balances_all_accounts_json(requests_mock):
+def test_cli_balance_all_accounts_json(requests_mock):
     with tempfile.TemporaryDirectory() as tmpdir:
         config_data = {
             "accounts": {
@@ -204,7 +204,7 @@ def test_cli_balances_all_accounts_json(requests_mock):
         result = runner.invoke(main, [
             "--config-dir", tmpdir,
             "--format", "json",
-            "balances"
+            "balance"
         ])
 
         assert result.exit_code == 0
@@ -218,7 +218,7 @@ def test_cli_balances_all_accounts_json(requests_mock):
         assert parsed[1]["acct_no"] == "9876543204"
         assert parsed[1]["balance"]["tot_pur_amt"] == "2000"
 
-def test_cli_balances_single_account_error(requests_mock):
+def test_cli_balance_single_account_error(requests_mock):
     with tempfile.TemporaryDirectory() as tmpdir:
         config_data = {"accounts": {"mh_default": {"appkey": "key", "secretkey": "sec"}}}
         with open(os.path.join(tmpdir, "config.json"), "w") as f:
@@ -235,7 +235,7 @@ def test_cli_balances_single_account_error(requests_mock):
         result = runner.invoke(main, [
             "--config-dir", tmpdir,
             "--account", "mh_default",
-            "balances"
+            "balance"
         ])
 
         # For a single account query, failure should immediately exit with code 1
@@ -247,13 +247,13 @@ def test_cli_balances_single_account_error(requests_mock):
             "--config-dir", tmpdir,
             "--account", "mh_default",
             "--format", "json",
-            "balances"
+            "balance"
         ])
         assert result_json.exit_code == 1
         parsed = json.loads(result_json.output)
         assert "error" in parsed
 
-def test_cli_balances_all_accounts_with_partial_error(requests_mock):
+def test_cli_balance_all_accounts_with_partial_error(requests_mock):
     with tempfile.TemporaryDirectory() as tmpdir:
         config_data = {
             "accounts": {
@@ -284,7 +284,7 @@ def test_cli_balances_all_accounts_with_partial_error(requests_mock):
         result = runner.invoke(main, [
             "--config-dir", tmpdir,
             "--format", "json",
-            "balances"
+            "balance"
         ])
 
         # Multi-account queries must isolate errors and not abort. So exit_code is 0.
@@ -304,7 +304,7 @@ def test_cli_balances_all_accounts_with_partial_error(requests_mock):
         assert "error" in parsed[1]["balance"]
         assert "500 Server Error" in parsed[1]["balance"]["error"]
 
-def test_cli_balances_all_accounts_with_partial_error_text(requests_mock):
+def test_cli_balance_all_accounts_with_partial_error_text(requests_mock):
     with tempfile.TemporaryDirectory() as tmpdir:
         config_data = {
             "accounts": {
@@ -334,7 +334,7 @@ def test_cli_balances_all_accounts_with_partial_error_text(requests_mock):
         runner = CliRunner()
         result = runner.invoke(main, [
             "--config-dir", tmpdir,
-            "balances"
+            "balance"
         ])
 
         # Text mode should also complete with exit code 0
@@ -366,7 +366,7 @@ def test_cli_subcommand_format_override(requests_mock):
         result_bal = runner.invoke(main, [
             "--config-dir", tmpdir,
             "--account", "mh_default",
-            "balances",
+            "balance",
             "-f", "json"
         ])
         assert result_bal.exit_code == 0

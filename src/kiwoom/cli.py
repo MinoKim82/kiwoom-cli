@@ -102,7 +102,7 @@ def accounts(ctx, format):
 @click.option("--acct", default=None, help="Specific actual account number to query")
 @click.option("--format", "-f", default=None, type=click.Choice(["text", "json"]), help="Output format override")
 @click.pass_context
-def balances(ctx, acct, format):
+def balance(ctx, acct, format):
     """Enquire portfolio balance and details of the account(s)"""
     account_alias = ctx.obj.get("account")
     cm = ctx.obj["config_manager"]

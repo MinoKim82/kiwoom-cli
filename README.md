@@ -86,15 +86,15 @@ kiwoom accounts
    2. 별칭: mh_sub       | 계좌번호: 98765432
   ```
 
-### 3.2. 평가 잔고 및 보유 종목 조회 (`balances`)
+### 3.2. 평가 잔고 및 보유 종목 조회 (`balance`)
 계좌의 예수금, 총 매입금액, 평가손익 및 개별 보유 종목의 상세 내역을 표 형태로 출력합니다.
 
 ```bash
 # 기본 계좌 잔고 조회 (별칭 내 첫 번째 실제 계좌가 자동 선택됨)
-kiwoom --account mh_default balances
+kiwoom --account mh_default balance
 
 # 특정 계좌번호를 명시하여 조회 (--acct 옵션 제공)
-kiwoom --account mh_default balances --acct 1234567810
+kiwoom --account mh_default balance --acct 1234567810
 ```
 * **출력 예시**:
   ```text
@@ -129,7 +129,7 @@ kiwoom --account mh_default balances --acct 1234567810
 1. **상황**: `mh_default`, `mh_sub` 두 계좌 별칭의 보유 포트폴리오 자산을 모니터링하고자 합니다.
 2. **명령어 실행**:
    ```bash
-   kiwoom balances
+   kiwoom balance
    ```
 3. **내부 동작**:
    - `--account` 옵션이 주어지지 않은 상태이므로 `config.json`을 열어 등록된 모든 별칭(`mh_default`, `mh_sub`)을 순차적으로 조회합니다.
@@ -141,7 +141,7 @@ kiwoom --account mh_default balances --acct 1234567810
 1. **상황**: `mh_default` 계좌 별칭이 어제 발급받은 세션 토큰이 캐시되어 있으며, 현재 만료 시점까지 약 5분이 남았습니다.
 2. **명령어 실행**:
    ```bash
-   kiwoom -a mh_default balances
+   kiwoom -a mh_default balance
    ```
 3. **내부 동작**:
    - `KiwoomClient` 내부의 `get_valid_token()` 함수가 호출됩니다.
@@ -156,7 +156,7 @@ kiwoom --account mh_default balances --acct 1234567810
 1. **상황**: `mh_sub` 계좌 별칭(실제 계좌번호 9876543204)에 코스피/코스닥 종목이 총 45종목 등록되어 있습니다.
 2. **명령어 실행**:
    ```bash
-   kiwoom -a mh_sub balances
+   kiwoom -a mh_sub balance
    ```
 3. **내부 동작**:
    - API 서버에 첫 페이지 데이터를 요청합니다.
