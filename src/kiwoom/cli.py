@@ -53,11 +53,13 @@ def info(ctx):
 
     results = []
     for alias in aliases:
-        client = KiwoomClient(account=alias, config_manager=cm)
         try:
+            client = KiwoomClient(account=alias, config_manager=cm)
             info_data = client.get_account_info()
             results.append((alias, info_data))
         except Exception as e:
+            if account_alias:
+                handle_error(ctx, str(e), fmt)
             results.append((alias, {"error": str(e)}))
 
     if fmt == "json":
@@ -112,11 +114,13 @@ def balance(ctx, acct):
 
     results = []
     for alias in aliases:
-        client = KiwoomClient(account=alias, config_manager=cm)
         try:
+            client = KiwoomClient(account=alias, config_manager=cm)
             res = client.get_balance(acct_no=acct)
             results.append((alias, res))
         except Exception as e:
+            if account_alias:
+                handle_error(ctx, str(e), fmt)
             results.append((alias, {"error": str(e)}))
 
     if fmt == "json":
@@ -125,7 +129,8 @@ def balance(ctx, acct):
             if "error" in res:
                 out_list.append({
                     "account": alias,
-                    "error": res["error"]
+                    "acct_no": alias,
+                    "balance": {"error": res["error"]}
                 })
             else:
                 out_list.append({
