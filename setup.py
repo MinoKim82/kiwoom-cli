@@ -9,6 +9,9 @@ setup(
         "requests",
         "click",
     ],
+    extras_require={
+        "dev": ["pytest", "requests-mock"],
+    },
     entry_points={
         "console_scripts": [
             "kiwoom=kiwoom.cli:main",
