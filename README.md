@@ -48,15 +48,15 @@ pip install -e .[dev]
    ```bash
    mkdir -p ~/.kiwoom
    ```
-2. `~/.kiwoom/config.json` 파일을 작성합니다. 계좌번호를 키로 하여 각 계좌별 정보를 등록합니다.
+2. `~/.kiwoom/config.json` 파일을 작성합니다. 계좌 별칭(alias)을 키로 하여 각 계좌별 정보를 등록합니다.
    ```json
    {
      "accounts": {
-       "1234567890": {
+       "mh_default": {
          "appkey": "appkey_value_for_account1",
          "secretkey": "secretkey_value_for_account1"
        },
-       "9876543210": {
+       "mh_sub": {
          "appkey": "appkey_value_for_account2",
          "secretkey": "secretkey_value_for_account2"
        }
