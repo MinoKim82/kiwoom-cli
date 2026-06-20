@@ -77,7 +77,7 @@ def balance(ctx, acct):
         click.echo(f"총 수익률    : {format_percent(res.get('tot_prft_rt'))}")
         click.echo("=" * 50)
 
-        holdings = res.get("stk_cntr_remn", [])
+        holdings = res.get("acnt_evlt_remn_indv_tot", [])
         if not holdings:
             click.echo("\n보유 주식이 없습니다.")
             return
@@ -97,7 +97,7 @@ def balance(ctx, acct):
             cur_prc = f"{format_currency(stock.get('cur_prc'))} 원"
             pl_amt = format_currency(stock.get('evltv_prft'))
             pl_amt_str = f"+{pl_amt}" if float(stock.get('evltv_prft', 0)) > 0 else pl_amt
-            pl_rt = format_percent(stock.get('pl_rt'))
+            pl_rt = format_percent(stock.get('prft_rt'))
             
             click.echo(f"{code:<8} | {name:<16} | {qty:<8} | {pur_uv:<10} | {cur_prc:<10} | {pl_amt_str:>12} | {pl_rt:>8}")
         click.echo("=" * 90)

@@ -118,7 +118,7 @@ class KiwoomClient:
                     "prsm_dpst_aset_amt": res_json.get("prsm_dpst_aset_amt", "0")
                 }
 
-            holdings = res_json.get("stk_cntr_remn", [])
+            holdings = res_json.get("acnt_evlt_remn_indv_tot", [])
             all_holdings.extend(holdings)
 
             # 연속조회 여부 및 키 추출
@@ -128,6 +128,6 @@ class KiwoomClient:
             if cont_yn != "Y" or not next_key:
                 break
 
-        summary_data["stk_cntr_remn"] = all_holdings
+        summary_data["acnt_evlt_remn_indv_tot"] = all_holdings
         return summary_data
 

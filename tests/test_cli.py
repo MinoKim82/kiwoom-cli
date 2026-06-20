@@ -37,7 +37,7 @@ def test_cli_balance_command(requests_mock):
             "tot_evlt_pl": "200000",
             "tot_prft_rt": "20.00",
             "prsm_dpst_aset_amt": "1500000",
-            "stk_cntr_remn": [
+            "acnt_evlt_remn_indv_tot": [
                 {
                     "stk_cd": "A005930",
                     "stk_nm": "삼성전자",
@@ -45,7 +45,7 @@ def test_cli_balance_command(requests_mock):
                     "pur_pric": "50000",
                     "cur_prc": "60000",
                     "evltv_prft": "100000",
-                    "pl_rt": "20.00"
+                    "prft_rt": "20.00"
                 }
             ]
         })

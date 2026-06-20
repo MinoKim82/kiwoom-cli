@@ -34,7 +34,7 @@ def test_get_balance_pagination(requests_mock):
             {
                 "json": {
                     "tot_pur_amt": "10000",
-                    "stk_cntr_remn": [{"stk_cd": "A005930", "stk_nm": "삼성전자"}],
+                    "acnt_evlt_remn_indv_tot": [{"stk_cd": "A005930", "stk_nm": "삼성전자"}],
                     "return_code": 0
                 },
                 "headers": {"cont-yn": "Y", "next-key": "page2_key"},
@@ -43,7 +43,7 @@ def test_get_balance_pagination(requests_mock):
             {
                 "json": {
                     "tot_pur_amt": "10000",
-                    "stk_cntr_remn": [{"stk_cd": "A000660", "stk_nm": "SK하이닉스"}],
+                    "acnt_evlt_remn_indv_tot": [{"stk_cd": "A000660", "stk_nm": "SK하이닉스"}],
                     "return_code": 0
                 },
                 "headers": {"cont-yn": "N", "next-key": ""},
@@ -54,7 +54,7 @@ def test_get_balance_pagination(requests_mock):
 
     balance = client.get_balance("1234567890")
     # 검증: 두 페이지의 종목이 정상적으로 통합되었는지 확인
-    assert len(balance["stk_cntr_remn"]) == 2
-    assert balance["stk_cntr_remn"][0]["stk_nm"] == "삼성전자"
-    assert balance["stk_cntr_remn"][1]["stk_nm"] == "SK하이닉스"
+    assert len(balance["acnt_evlt_remn_indv_tot"]) == 2
+    assert balance["acnt_evlt_remn_indv_tot"][0]["stk_nm"] == "삼성전자"
+    assert balance["acnt_evlt_remn_indv_tot"][1]["stk_nm"] == "SK하이닉스"
     assert balance["tot_pur_amt"] == "10000"
