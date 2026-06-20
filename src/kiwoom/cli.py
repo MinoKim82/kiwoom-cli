@@ -109,10 +109,63 @@ def info(ctx, format):
             click.echo(f" 상품구분: {acct_tp_nm}")
 
 @main.command()
+@click.option("--format", "-f", default=None, type=click.Choice(["text", "json"]), help="Output format override")
+@click.pass_context
+def accounts(ctx, format):
+    """List all registered account aliases and their actual account numbers"""
+    account_alias = ctx.obj.get("account")
+    cm = ctx.obj["config_manager"]
+    fmt = format if format is not None else ctx.obj.get("format", "text")
+
+    aliases = [account_alias] if account_alias else cm.get_all_account_aliases()
+    if not aliases:
+        handle_error(ctx, "설정된 계좌 별칭이 없거나 config.json을 찾을 수 없습니다.", fmt)
+
+    results = []
+    for alias in aliases:
+        try:
+            client = KiwoomClient(account=alias, config_manager=cm)
+            accts = client.get_accounts()
+            accts_8 = [get_8_digit_acct_no(a) for a in accts]
+            results.append((alias, accts_8))
+        except Exception as e:
+            if account_alias:
+                handle_error(ctx, str(e), fmt)
+            results.append((alias, {"error": str(e)}))
+
+    if fmt == "json":
+        out_list = []
+        for alias, data in results:
+            if isinstance(data, dict) and "error" in data:
+                out_list.append({
+                    "account_alias": alias,
+                    "error": data["error"]
+                })
+            else:
+                acct_val = data[0] if data else ""
+                out_list.append({
+                    "account_alias": alias,
+                    "acct_no": acct_val
+                })
+        if account_alias:
+            click.echo(json.dumps(out_list[0], ensure_ascii=False))
+        else:
+            click.echo(json.dumps(out_list, ensure_ascii=False))
+        return
+
+    click.echo("=== 등록된 계좌 목록 ===")
+    for idx, (alias, data) in enumerate(results, 1):
+        if isinstance(data, dict) and "error" in data:
+            click.echo(f" {idx}. 별칭: {alias:<12} | 에러: {data['error']}")
+        else:
+            acct_val = data[0] if data else "연결된 계좌 없음"
+            click.echo(f" {idx}. 별칭: {alias:<12} | 계좌번호: {acct_val}")
+
+@main.command()
 @click.option("--acct", default=None, help="Specific actual account number to query")
 @click.option("--format", "-f", default=None, type=click.Choice(["text", "json"]), help="Output format override")
 @click.pass_context
-def balance(ctx, acct, format):
+def balances(ctx, acct, format):
     """Enquire portfolio balance and details of the account(s)"""
     account_alias = ctx.obj.get("account")
     cm = ctx.obj["config_manager"]

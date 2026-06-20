@@ -35,7 +35,7 @@ def test_cli_info_command(requests_mock):
         assert "계좌명: 홍길동" in result.output
         assert "상품구분: 위탁종합" in result.output
 
-def test_cli_balance_command(requests_mock):
+def test_cli_balances_command(requests_mock):
     with tempfile.TemporaryDirectory() as tmpdir:
         config_data = {"accounts": {"mh_default": {"appkey": "key", "secretkey": "sec"}}}
         with open(os.path.join(tmpdir, "config.json"), "w") as f:
@@ -82,7 +82,7 @@ def test_cli_balance_command(requests_mock):
         result = runner.invoke(main, [
             "--config-dir", tmpdir,
             "--account", "mh_default",
-            "balance"
+            "balances"
         ])
 
         assert result.exit_code == 0
@@ -91,7 +91,7 @@ def test_cli_balance_command(requests_mock):
         assert "삼성전자" in result.output
         assert "1,000,000" in result.output
 
-def test_cli_balance_json_format(requests_mock):
+def test_cli_balances_json_format(requests_mock):
     with tempfile.TemporaryDirectory() as tmpdir:
         config_data = {"accounts": {"mh_default": {"appkey": "key", "secretkey": "sec"}}}
         with open(os.path.join(tmpdir, "config.json"), "w") as f:
@@ -138,7 +138,7 @@ def test_cli_balance_json_format(requests_mock):
             "--config-dir", tmpdir,
             "--account", "mh_default",
             "--format", "json",
-            "balance"
+            "balances"
         ])
 
         assert result.exit_code == 0
@@ -149,7 +149,7 @@ def test_cli_balance_json_format(requests_mock):
         assert len(parsed["balance"]["acnt_evlt_remn_indv_tot"]) == 1
 
 
-def test_cli_balance_with_specific_acct(requests_mock):
+def test_cli_balances_with_specific_acct(requests_mock):
     with tempfile.TemporaryDirectory() as tmpdir:
         config_data = {"accounts": {"mh_default": {"appkey": "key", "secretkey": "sec"}}}
         with open(os.path.join(tmpdir, "config.json"), "w") as f:
@@ -185,7 +185,7 @@ def test_cli_balance_with_specific_acct(requests_mock):
             "--config-dir", tmpdir,
             "--account", "mh_default",
             "--format", "json",
-            "balance",
+            "balances",
             "--acct", "9876543210"
         ])
 
@@ -234,7 +234,7 @@ def test_cli_info_all_accounts(requests_mock):
         assert "계좌번호: 98765432" in result.output
         assert "상품구분: 위탁종합" in result.output
 
-def test_cli_balance_all_accounts_json(requests_mock):
+def test_cli_balances_all_accounts_json(requests_mock):
     with tempfile.TemporaryDirectory() as tmpdir:
         config_data = {
             "accounts": {
@@ -268,7 +268,7 @@ def test_cli_balance_all_accounts_json(requests_mock):
         result = runner.invoke(main, [
             "--config-dir", tmpdir,
             "--format", "json",
-            "balance"
+            "balances"
         ])
 
         assert result.exit_code == 0
@@ -282,7 +282,7 @@ def test_cli_balance_all_accounts_json(requests_mock):
         assert parsed[1]["acct_no"] == "9876543204"
         assert parsed[1]["balance"]["tot_pur_amt"] == "2000"
 
-def test_cli_balance_single_account_error(requests_mock):
+def test_cli_balances_single_account_error(requests_mock):
     with tempfile.TemporaryDirectory() as tmpdir:
         config_data = {"accounts": {"mh_default": {"appkey": "key", "secretkey": "sec"}}}
         with open(os.path.join(tmpdir, "config.json"), "w") as f:
@@ -299,7 +299,7 @@ def test_cli_balance_single_account_error(requests_mock):
         result = runner.invoke(main, [
             "--config-dir", tmpdir,
             "--account", "mh_default",
-            "balance"
+            "balances"
         ])
 
         # For a single account query, failure should immediately exit with code 1
@@ -311,13 +311,13 @@ def test_cli_balance_single_account_error(requests_mock):
             "--config-dir", tmpdir,
             "--account", "mh_default",
             "--format", "json",
-            "balance"
+            "balances"
         ])
         assert result_json.exit_code == 1
         parsed = json.loads(result_json.output)
         assert "error" in parsed
 
-def test_cli_balance_all_accounts_with_partial_error(requests_mock):
+def test_cli_balances_all_accounts_with_partial_error(requests_mock):
     with tempfile.TemporaryDirectory() as tmpdir:
         config_data = {
             "accounts": {
@@ -348,7 +348,7 @@ def test_cli_balance_all_accounts_with_partial_error(requests_mock):
         result = runner.invoke(main, [
             "--config-dir", tmpdir,
             "--format", "json",
-            "balance"
+            "balances"
         ])
 
         # Multi-account queries must isolate errors and not abort. So exit_code is 0.
@@ -368,7 +368,7 @@ def test_cli_balance_all_accounts_with_partial_error(requests_mock):
         assert "error" in parsed[1]["balance"]
         assert "500 Server Error" in parsed[1]["balance"]["error"]
 
-def test_cli_balance_all_accounts_with_partial_error_text(requests_mock):
+def test_cli_balances_all_accounts_with_partial_error_text(requests_mock):
     with tempfile.TemporaryDirectory() as tmpdir:
         config_data = {
             "accounts": {
@@ -398,7 +398,7 @@ def test_cli_balance_all_accounts_with_partial_error_text(requests_mock):
         runner = CliRunner()
         result = runner.invoke(main, [
             "--config-dir", tmpdir,
-            "balance"
+            "balances"
         ])
 
         # Text mode should also complete with exit code 0
@@ -430,7 +430,7 @@ def test_cli_subcommand_format_override(requests_mock):
         result_bal = runner.invoke(main, [
             "--config-dir", tmpdir,
             "--account", "mh_default",
-            "balance",
+            "balances",
             "-f", "json"
         ])
         assert result_bal.exit_code == 0
@@ -457,3 +457,71 @@ def test_cli_subcommand_format_override(requests_mock):
         parsed_info = json.loads(result_info.output)
         assert parsed_info["account_alias"] == "mh_default"
         assert parsed_info["account_info"]["acctNm"] == "홍길동"
+
+def test_cli_accounts_command(requests_mock):
+    with tempfile.TemporaryDirectory() as tmpdir:
+        config_data = {
+            "accounts": {
+                "mh_default": {"appkey": "key", "secretkey": "sec"},
+                "mh_sub": {"appkey": "key2", "secretkey": "sec2"}
+            }
+        }
+        with open(os.path.join(tmpdir, "config.json"), "w") as f:
+            json.dump(config_data, f)
+        
+        tokens_data = {
+            "mh_default": {"token": "valid_token1", "expires_dt": "20360101000000"},
+            "mh_sub": {"token": "valid_token2", "expires_dt": "20360101000000"}
+        }
+        with open(os.path.join(tmpdir, "tokens.json"), "w") as f:
+            json.dump(tokens_data, f)
+
+        # Mock API to return account list
+        requests_mock.post("https://api.kiwoom.com/api/dostk/acnt", [
+            {"json": {"acctNo": "1234567810", "return_code": 0}},
+            {"json": {"acctNo": "9876543204", "return_code": 0}}
+        ])
+
+        runner = CliRunner()
+        result = runner.invoke(main, [
+            "--config-dir", tmpdir,
+            "accounts"
+        ])
+
+        assert result.exit_code == 0
+        assert "=== 등록된 계좌 목록 ===" in result.output
+        assert "별칭: mh_default   | 계좌번호: 12345678" in result.output
+        assert "별칭: mh_sub       | 계좌번호: 98765432" in result.output
+
+def test_cli_accounts_json_format(requests_mock):
+    with tempfile.TemporaryDirectory() as tmpdir:
+        config_data = {
+            "accounts": {
+                "mh_default": {"appkey": "key", "secretkey": "sec"}
+            }
+        }
+        with open(os.path.join(tmpdir, "config.json"), "w") as f:
+            json.dump(config_data, f)
+        
+        tokens_data = {"mh_default": {"token": "valid_token", "expires_dt": "20360101000000"}}
+        with open(os.path.join(tmpdir, "tokens.json"), "w") as f:
+            json.dump(tokens_data, f)
+
+        requests_mock.post("https://api.kiwoom.com/api/dostk/acnt", json={
+            "acctNo": "1234567810",
+            "return_code": 0
+        })
+
+        runner = CliRunner()
+        result = runner.invoke(main, [
+            "--config-dir", tmpdir,
+            "--format", "json",
+            "accounts"
+        ])
+
+        assert result.exit_code == 0
+        parsed = json.loads(result.output)
+        assert isinstance(parsed, list)
+        assert len(parsed) == 1
+        assert parsed[0]["account_alias"] == "mh_default"
+        assert parsed[0]["acct_no"] == "12345678"
