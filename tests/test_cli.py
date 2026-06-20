@@ -5,35 +5,7 @@ from click.testing import CliRunner
 import requests_mock
 from kiwoom.cli import main
 
-def test_cli_info_command(requests_mock):
-    with tempfile.TemporaryDirectory() as tmpdir:
-        config_data = {"accounts": {"mh_default": {"appkey": "key", "secretkey": "sec"}}}
-        with open(os.path.join(tmpdir, "config.json"), "w") as f:
-            json.dump(config_data, f)
-        
-        tokens_data = {"mh_default": {"token": "valid_token", "expires_dt": "20360101000000"}}
-        with open(os.path.join(tmpdir, "tokens.json"), "w") as f:
-            json.dump(tokens_data, f)
 
-        requests_mock.post("https://api.kiwoom.com/api/dostk/acnt", json={
-            "acctNo": "1234567810",
-            "acctNm": "홍길동",
-            "acctTpNm": "위탁종합",
-            "return_code": 0
-        })
-
-        runner = CliRunner()
-        result = runner.invoke(main, [
-            "--config-dir", tmpdir,
-            "--account", "mh_default",
-            "info"
-        ])
-
-        assert result.exit_code == 0
-        assert "=== [mh_default] 계좌 정보 ===" in result.output
-        assert "계좌번호: 12345678" in result.output
-        assert "계좌명: 홍길동" in result.output
-        assert "상품구분: 위탁종합" in result.output
 
 def test_cli_balances_command(requests_mock):
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -196,43 +168,7 @@ def test_cli_balances_with_specific_acct(requests_mock):
         # Check that request sent specified account number
         last_request = requests_mock.last_request
         assert last_request.json()["acctNo"] == "9876543210"
-def test_cli_info_all_accounts(requests_mock):
-    with tempfile.TemporaryDirectory() as tmpdir:
-        config_data = {
-            "accounts": {
-                "mh_default": {"appkey": "key", "secretkey": "sec"},
-                "mh_sub": {"appkey": "key2", "secretkey": "sec2"}
-            }
-        }
-        with open(os.path.join(tmpdir, "config.json"), "w") as f:
-            json.dump(config_data, f)
-        
-        tokens_data = {
-            "mh_default": {"token": "valid_token1", "expires_dt": "20360101000000"},
-            "mh_sub": {"token": "valid_token2", "expires_dt": "20360101000000"}
-        }
-        with open(os.path.join(tmpdir, "tokens.json"), "w") as f:
-            json.dump(tokens_data, f)
 
-        # Mock account responses for both aliases
-        requests_mock.post("https://api.kiwoom.com/api/dostk/acnt", [
-            {"json": {"acctNo": "1234567810", "acctNm": "홍길동", "acctTpNm": "위탁종합", "return_code": 0}},
-            {"json": {"acctNo": "9876543204", "acctNm": "이몽룡", "acctTpNm": "위탁종합", "return_code": 0}}
-        ])
-
-        runner = CliRunner()
-        result = runner.invoke(main, [
-            "--config-dir", tmpdir,
-            "info"
-        ])
-
-        assert result.exit_code == 0
-        assert "=== [mh_default] 계좌 정보 ===" in result.output
-        assert "계좌번호: 12345678" in result.output
-        assert "상품구분: 위탁종합" in result.output
-        assert "=== [mh_sub] 계좌 정보 ===" in result.output
-        assert "계좌번호: 98765432" in result.output
-        assert "상품구분: 위탁종합" in result.output
 
 def test_cli_balances_all_accounts_json(requests_mock):
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -438,25 +374,7 @@ def test_cli_subcommand_format_override(requests_mock):
         assert parsed_bal["account"] == "mh_default"
         assert parsed_bal["balance"]["tot_pur_amt"] == "7777"
 
-        # Mock API for get_account_info
-        requests_mock.post("https://api.kiwoom.com/api/dostk/acnt", json={
-            "acctNo": "1234567810",
-            "acctNm": "홍길동",
-            "acctTpNm": "위탁종합",
-            "return_code": 0
-        })
 
-        # 2. Test info command with --format json option placed AFTER the command
-        result_info = runner.invoke(main, [
-            "--config-dir", tmpdir,
-            "--account", "mh_default",
-            "info",
-            "--format", "json"
-        ])
-        assert result_info.exit_code == 0
-        parsed_info = json.loads(result_info.output)
-        assert parsed_info["account_alias"] == "mh_default"
-        assert parsed_info["account_info"]["acctNm"] == "홍길동"
 
 def test_cli_accounts_command(requests_mock):
     with tempfile.TemporaryDirectory() as tmpdir:

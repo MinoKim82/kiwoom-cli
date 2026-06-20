@@ -44,69 +44,6 @@ def main(ctx, config_dir, account, format):
         "format": format
     }
 
-@main.command()
-@click.option("--format", "-f", default=None, type=click.Choice(["text", "json"]), help="Output format override")
-@click.pass_context
-def info(ctx, format):
-    """Enquire detailed account information of the alias(es)"""
-    account_alias = ctx.obj.get("account")
-    cm = ctx.obj["config_manager"]
-    fmt = format if format is not None else ctx.obj.get("format", "text")
-
-    aliases = [account_alias] if account_alias else cm.get_all_account_aliases()
-    if not aliases:
-        handle_error(ctx, "설정된 계좌 별칭이 없거나 config.json을 찾을 수 없습니다.", fmt)
-
-    results = []
-    for alias in aliases:
-        try:
-            client = KiwoomClient(account=alias, config_manager=cm)
-            info_data = client.get_account_info()
-            acct_no = info_data.get("acctNo")
-            if acct_no and len(acct_no) == 10 and acct_no.isdigit():
-                info_data["acctNo"] = get_8_digit_acct_no(acct_no)
-            results.append((alias, info_data))
-        except Exception as e:
-            if account_alias:
-                handle_error(ctx, str(e), fmt)
-            results.append((alias, {"error": str(e)}))
-
-    if fmt == "json":
-        out_list = []
-        for alias, data in results:
-            out_list.append({
-                "account_alias": alias,
-                "account_info": data
-            })
-        if account_alias:
-            click.echo(json.dumps(out_list[0], ensure_ascii=False))
-        else:
-            click.echo(json.dumps(out_list, ensure_ascii=False))
-        return
-
-    for idx, (alias, data) in enumerate(results):
-        if idx > 0:
-            click.echo("\n" + "-" * 50)
-        if "error" in data:
-            click.echo(f"=== [{alias}] 계좌 정보 조회 실패 ===")
-            click.echo(f" 에러: {data['error']}")
-            continue
-
-        acct_no = data.get("acctNo")
-        if not acct_no:
-            click.echo(f"=== [{alias}] 계좌 정보 없음 ===")
-            continue
-
-        click.echo(f"=== [{alias}] 계좌 정보 ===")
-        click.echo(f" 계좌번호: {acct_no}")
-        
-        acct_nm = data.get("acctNm")
-        if acct_nm:
-            click.echo(f" 계좌명: {acct_nm}")
-            
-        acct_tp_nm = data.get("acctTpNm")
-        if acct_tp_nm:
-            click.echo(f" 상품구분: {acct_tp_nm}")
 
 @main.command()
 @click.option("--format", "-f", default=None, type=click.Choice(["text", "json"]), help="Output format override")
