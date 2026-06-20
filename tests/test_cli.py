@@ -16,7 +16,7 @@ def test_cli_info_command(requests_mock):
             json.dump(tokens_data, f)
 
         requests_mock.post("https://api.kiwoom.com/api/dostk/acnt", json={
-            "acctNo": "1234567890",
+            "acctNo": "1234567810",
             "acctNm": "홍길동",
             "acctTpNm": "위탁종합",
             "return_code": 0
@@ -31,9 +31,9 @@ def test_cli_info_command(requests_mock):
 
         assert result.exit_code == 0
         assert "=== [mh_default] 계좌 정보 ===" in result.output
-        assert "계좌번호: 1234567890" in result.output
+        assert "계좌번호: 12345678" in result.output
         assert "계좌명: 홍길동" in result.output
-        assert "상품구분: 위탁종합" in result.output
+        assert "상품구분: 종합계좌 (국내주식, ELS 등)" in result.output
 
 def test_cli_balance_command(requests_mock):
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -49,7 +49,7 @@ def test_cli_balance_command(requests_mock):
         requests_mock.post("https://api.kiwoom.com/api/dostk/acnt", [
             {
                 "json": {
-                    "acctNo": "1234567890",
+                    "acctNo": "1234567810",
                     "return_code": 0
                 },
                 "status_code": 200
@@ -87,7 +87,7 @@ def test_cli_balance_command(requests_mock):
 
         assert result.exit_code == 0
         assert "계좌 평가 현황" in result.output
-        assert "[1234567890] 계좌 평가 현황" in result.output  # Display actual account number
+        assert "종합계좌 [12345678] 계좌 평가 현황" in result.output  # Display actual account number
         assert "삼성전자" in result.output
         assert "1,000,000" in result.output
 
@@ -104,7 +104,7 @@ def test_cli_balance_json_format(requests_mock):
         requests_mock.post("https://api.kiwoom.com/api/dostk/acnt", [
             {
                 "json": {
-                    "acctNo": "1234567890",
+                    "acctNo": "1234567810",
                     "return_code": 0
                 },
                 "status_code": 200
@@ -144,7 +144,7 @@ def test_cli_balance_json_format(requests_mock):
         assert result.exit_code == 0
         parsed = json.loads(result.output)
         assert parsed["account"] == "mh_default"
-        assert parsed["acct_no"] == "1234567890"  # Verify actual account number in json
+        assert parsed["acct_no"] == "1234567810"  # Verify actual account number in json
         assert parsed["balance"]["tot_pur_amt"] == "1000000"
         assert len(parsed["balance"]["acnt_evlt_remn_indv_tot"]) == 1
 
@@ -216,8 +216,8 @@ def test_cli_info_all_accounts(requests_mock):
 
         # Mock account responses for both aliases
         requests_mock.post("https://api.kiwoom.com/api/dostk/acnt", [
-            {"json": {"acctNo": "1234567890", "acctNm": "홍길동", "acctTpNm": "위탁종합", "return_code": 0}},
-            {"json": {"acctNo": "9876543210", "acctNm": "이몽룡", "acctTpNm": "위탁종합", "return_code": 0}}
+            {"json": {"acctNo": "1234567810", "acctNm": "홍길동", "acctTpNm": "위탁종합", "return_code": 0}},
+            {"json": {"acctNo": "9876543204", "acctNm": "이몽룡", "acctTpNm": "위탁종합", "return_code": 0}}
         ])
 
         runner = CliRunner()
@@ -228,9 +228,11 @@ def test_cli_info_all_accounts(requests_mock):
 
         assert result.exit_code == 0
         assert "=== [mh_default] 계좌 정보 ===" in result.output
-        assert "계좌번호: 1234567890" in result.output
+        assert "계좌번호: 12345678" in result.output
+        assert "상품구분: 종합계좌 (국내주식, ELS 등)" in result.output
         assert "=== [mh_sub] 계좌 정보 ===" in result.output
-        assert "계좌번호: 9876543210" in result.output
+        assert "계좌번호: 98765432" in result.output
+        assert "상품구분: 해외주식" in result.output
 
 def test_cli_balance_all_accounts_json(requests_mock):
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -256,10 +258,10 @@ def test_cli_balance_all_accounts_json(requests_mock):
         # 3. mh_sub get_accounts()
         # 4. mh_sub get_balance()
         requests_mock.post("https://api.kiwoom.com/api/dostk/acnt", [
-            {"json": {"acctNo": "1234567890", "return_code": 0}},
-            {"json": {"acctNo": "1234567890", "tot_pur_amt": "1000", "acnt_evlt_remn_indv_tot": [], "return_code": 0}},
-            {"json": {"acctNo": "9876543210", "return_code": 0}},
-            {"json": {"acctNo": "9876543210", "tot_pur_amt": "2000", "acnt_evlt_remn_indv_tot": [], "return_code": 0}}
+            {"json": {"acctNo": "1234567810", "return_code": 0}},
+            {"json": {"acctNo": "1234567810", "tot_pur_amt": "1000", "acnt_evlt_remn_indv_tot": [], "return_code": 0}},
+            {"json": {"acctNo": "9876543204", "return_code": 0}},
+            {"json": {"acctNo": "9876543204", "tot_pur_amt": "2000", "acnt_evlt_remn_indv_tot": [], "return_code": 0}}
         ])
 
         runner = CliRunner()
@@ -274,10 +276,10 @@ def test_cli_balance_all_accounts_json(requests_mock):
         assert isinstance(parsed, list)
         assert len(parsed) == 2
         assert parsed[0]["account"] == "mh_default"
-        assert parsed[0]["acct_no"] == "1234567890"
+        assert parsed[0]["acct_no"] == "1234567810"
         assert parsed[0]["balance"]["tot_pur_amt"] == "1000"
         assert parsed[1]["account"] == "mh_sub"
-        assert parsed[1]["acct_no"] == "9876543210"
+        assert parsed[1]["acct_no"] == "9876543204"
         assert parsed[1]["balance"]["tot_pur_amt"] == "2000"
 
 def test_cli_balance_single_account_error(requests_mock):
@@ -337,8 +339,8 @@ def test_cli_balance_all_accounts_with_partial_error(requests_mock):
         # mh_default: get_accounts (success), get_balance (success)
         # mh_sub: get_accounts (failure status 500)
         requests_mock.post("https://api.kiwoom.com/api/dostk/acnt", [
-            {"json": {"acctNo": "1234567890", "return_code": 0}},
-            {"json": {"acctNo": "1234567890", "tot_pur_amt": "1000", "acnt_evlt_remn_indv_tot": [], "return_code": 0}},
+            {"json": {"acctNo": "1234567810", "return_code": 0}},
+            {"json": {"acctNo": "1234567810", "tot_pur_amt": "1000", "acnt_evlt_remn_indv_tot": [], "return_code": 0}},
             {"status_code": 500, "text": "API Error"}
         ])
 
@@ -357,7 +359,7 @@ def test_cli_balance_all_accounts_with_partial_error(requests_mock):
 
         # First account: success
         assert parsed[0]["account"] == "mh_default"
-        assert parsed[0]["acct_no"] == "1234567890"
+        assert parsed[0]["acct_no"] == "1234567810"
         assert parsed[0]["balance"]["tot_pur_amt"] == "1000"
 
         # Second account: failure
@@ -388,8 +390,8 @@ def test_cli_balance_all_accounts_with_partial_error_text(requests_mock):
         # mh_default: get_accounts (success), get_balance (success)
         # mh_sub: get_accounts (failure status 500)
         requests_mock.post("https://api.kiwoom.com/api/dostk/acnt", [
-            {"json": {"acctNo": "1234567890", "return_code": 0}},
-            {"json": {"acctNo": "1234567890", "tot_pur_amt": "1000", "acnt_evlt_remn_indv_tot": [], "return_code": 0}},
+            {"json": {"acctNo": "1234567810", "return_code": 0}},
+            {"json": {"acctNo": "1234567810", "tot_pur_amt": "1000", "acnt_evlt_remn_indv_tot": [], "return_code": 0}},
             {"status_code": 500, "text": "API Error"}
         ])
 
@@ -402,7 +404,7 @@ def test_cli_balance_all_accounts_with_partial_error_text(requests_mock):
         # Text mode should also complete with exit code 0
         assert result.exit_code == 0
         # First account shows success output
-        assert "[1234567890] 계좌 평가 현황" in result.output
+        assert "종합계좌 [12345678] 계좌 평가 현황" in result.output
         # Second account shows failure message
         assert "[mh_sub] 계좌 잔고 조회 실패: 500 Server Error" in result.output
 
@@ -418,8 +420,8 @@ def test_cli_subcommand_format_override(requests_mock):
 
         # Mock API for get_accounts and get_balance
         requests_mock.post("https://api.kiwoom.com/api/dostk/acnt", [
-            {"json": {"acctNo": "1234567890", "return_code": 0}},
-            {"json": {"acctNo": "1234567890", "tot_pur_amt": "7777", "acnt_evlt_remn_indv_tot": [], "return_code": 0}}
+            {"json": {"acctNo": "1234567810", "return_code": 0}},
+            {"json": {"acctNo": "1234567810", "tot_pur_amt": "7777", "acnt_evlt_remn_indv_tot": [], "return_code": 0}}
         ])
 
         runner = CliRunner()
@@ -438,7 +440,7 @@ def test_cli_subcommand_format_override(requests_mock):
 
         # Mock API for get_account_info
         requests_mock.post("https://api.kiwoom.com/api/dostk/acnt", json={
-            "acctNo": "1234567890",
+            "acctNo": "1234567810",
             "acctNm": "홍길동",
             "acctTpNm": "위탁종합",
             "return_code": 0

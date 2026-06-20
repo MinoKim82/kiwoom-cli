@@ -4,6 +4,41 @@ import os
 from kiwoom.config import ConfigManager
 from kiwoom.client import KiwoomClient
 
+ACCOUNT_TYPES = {
+    "01": "종합계좌 (국내주식, ELS 등)",
+    "10": "종합계좌 (국내주식, ELS 등)",
+    "03": "주식매입자금대출 (스탁론)",
+    "04": "해외주식",
+    "05": "선물옵션",
+    "06": "금현물",
+    "08": "외화RP",
+    "21": "연금저축",
+    "22": "퇴직연금",
+    "31": "펀드",
+}
+
+ACCOUNT_SHORT_TYPES = {
+    "01": "종합계좌",
+    "10": "종합계좌",
+    "03": "주식매입자금대출",
+    "04": "해외주식",
+    "05": "선물옵션",
+    "06": "금현물",
+    "08": "외화RP",
+    "21": "연금저축",
+    "22": "퇴직연금",
+    "31": "펀드",
+}
+
+def parse_account_number(acct_no):
+    if isinstance(acct_no, str) and len(acct_no) == 10 and acct_no.isdigit():
+        acct_8 = acct_no[:8]
+        code = acct_no[8:]
+        tp_desc = ACCOUNT_TYPES.get(code, "기타계좌")
+        tp_short = ACCOUNT_SHORT_TYPES.get(code, "기타계좌")
+        return acct_8, tp_desc, tp_short
+    return acct_no, "기타계좌", "기타계좌"
+
 def format_currency(val):
     try:
         return f"{int(float(val)):,}"
@@ -57,6 +92,11 @@ def info(ctx, format):
         try:
             client = KiwoomClient(account=alias, config_manager=cm)
             info_data = client.get_account_info()
+            acct_no = info_data.get("acctNo")
+            if acct_no and len(acct_no) == 10 and acct_no.isdigit():
+                acct_8, tp_desc, _ = parse_account_number(acct_no)
+                info_data["acctNo"] = acct_8
+                info_data["acctTpNm"] = tp_desc
             results.append((alias, info_data))
         except Exception as e:
             if account_alias:
@@ -154,10 +194,11 @@ def balance(ctx, acct, format):
             continue
 
         real_acct = res.get("acct_no", alias)
+        acct_8, _, tp_short = parse_account_number(real_acct)
         click.echo("\n" + "=" * 50)
-        click.echo(f"  [{real_acct}] 계좌 평가 현황")
+        click.echo(f"  {tp_short} [{acct_8}] 계좌 평가 현황")
         click.echo("=" * 50)
-        click.echo(f"계좌 번호   : {real_acct}")
+        click.echo(f"계좌 번호   : {acct_8}")
         click.echo(f"추정예탁자산 : {format_currency(res.get('prsm_dpst_aset_amt'))} 원")
         click.echo(f"총 매입금액  : {format_currency(res.get('tot_pur_amt'))} 원")
         click.echo(f"총 평가금액  : {format_currency(res.get('tot_evlt_amt'))} 원")
@@ -171,7 +212,7 @@ def balance(ctx, acct, format):
             continue
 
         click.echo("\n" + "=" * 90)
-        click.echo(f"  [{real_acct}] 보유 종목 현황")
+        click.echo(f"  {tp_short} [{acct_8}] 보유 종목 현황")
         click.echo("=" * 90)
         click.echo(f"{'종목코드':<8} | {'종목명':<16} | {'보유수량':<8} | {'매입단가':<10} | {'현재가':<10} | {'평가손익':<12} | {'수익률':<8}")
         click.echo("-" * 90)
