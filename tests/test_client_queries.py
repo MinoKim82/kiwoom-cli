@@ -8,7 +8,7 @@ class MockConfigManager:
     def load_token(self, account):
         return {"token": "valid_token", "expires_dt": "20360101000000"}
 
-def test_get_accounts(requests_mock):
+def test_get_account_info(requests_mock):
     cm = MockConfigManager()
     client = KiwoomClient(account="mh_default", config_manager=cm, host="https://mockapi.kiwoom.com")
 
@@ -16,10 +16,21 @@ def test_get_accounts(requests_mock):
         "https://mockapi.kiwoom.com/api/dostk/acnt",
         json={
             "acctNo": "1234567890",
+            "acctNm": "홍길동",
+            "acctTpNm": "위탁종합",
             "return_code": 0
         }
     )
 
+    info = client.get_account_info()
+    assert info == {
+        "acctNo": "1234567890",
+        "acctNm": "홍길동",
+        "acctTpNm": "위탁종합",
+        "return_code": 0
+    }
+
+    # Test get_accounts delegating to cached get_account_info
     accounts = client.get_accounts()
     assert accounts == ["1234567890"]
 
