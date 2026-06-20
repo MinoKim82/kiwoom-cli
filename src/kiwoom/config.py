@@ -52,3 +52,14 @@ class ConfigManager:
         }
         with open(self.tokens_path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=4, ensure_ascii=False)
+
+    def get_all_account_aliases(self) -> list:
+        if not os.path.exists(self.config_path):
+            return []
+        with open(self.config_path, "r", encoding="utf-8") as f:
+            try:
+                data = json.load(f)
+            except json.JSONDecodeError:
+                return []
+        return list(data.get("accounts", {}).keys())
+

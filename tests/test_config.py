@@ -64,3 +64,25 @@ def test_config_manager_legacy_users_key():
             cm.load_credentials("1234567890")
         assert "기존 'users' 형식의 설정이 감지되었습니다" in str(excinfo.value)
 
+
+def test_config_manager_get_all_account_aliases():
+    with tempfile.TemporaryDirectory() as tmpdir:
+        config_data = {
+            "accounts": {
+                "mh_default": {"appkey": "key1", "secretkey": "sec1"},
+                "mh_sub": {"appkey": "key2", "secretkey": "sec2"}
+            }
+        }
+        with open(os.path.join(tmpdir, "config.json"), "w") as f:
+            json.dump(config_data, f)
+
+        cm = ConfigManager(base_dir=tmpdir)
+        aliases = cm.get_all_account_aliases()
+        assert aliases == ["mh_default", "mh_sub"]
+
+    # Test empty when config.json does not exist
+    with tempfile.TemporaryDirectory() as tmpdir:
+        cm = ConfigManager(base_dir=tmpdir)
+        assert cm.get_all_account_aliases() == []
+
+
