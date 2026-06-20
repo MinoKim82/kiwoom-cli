@@ -41,28 +41,52 @@ def main(ctx, config_dir, account, format):
 
 @main.command()
 @click.pass_context
-def balance(ctx):
-    """Enquire portfolio balance and details of the account"""
-    account = ctx.obj["account"]
+def account(ctx):
+    """Enquire the actual account number of the alias"""
+    account_alias = ctx.obj["account"]
     cm = ctx.obj["config_manager"]
     fmt = ctx.obj.get("format", "text")
-    client = KiwoomClient(account=account, config_manager=cm)
+    client = KiwoomClient(account=account_alias, config_manager=cm)
+
+    try:
+        accts = client.get_accounts()
+        if not accts:
+            handle_error(ctx, "연결된 실제 계좌가 없습니다.", fmt)
+        if fmt == "json":
+            click.echo(json.dumps({"account_alias": account_alias, "accounts": accts}, ensure_ascii=False))
+        else:
+            click.echo(f"=== [{account_alias}] 실제 계좌 목록 ===")
+            for idx, acct in enumerate(accts, 1):
+                click.echo(f" {idx}. 계좌번호: {acct}")
+    except Exception as e:
+        handle_error(ctx, str(e), fmt)
+
+@main.command()
+@click.pass_context
+def balance(ctx):
+    """Enquire portfolio balance and details of the account"""
+    account_alias = ctx.obj["account"]
+    cm = ctx.obj["config_manager"]
+    fmt = ctx.obj.get("format", "text")
+    client = KiwoomClient(account=account_alias, config_manager=cm)
 
     try:
         res = client.get_balance()
+        real_acct = res.get("acct_no", account_alias)
         
         if fmt == "json":
             out = {
-                "account": account,
+                "account": account_alias,
+                "acct_no": real_acct,
                 "balance": res
             }
             click.echo(json.dumps(out, ensure_ascii=False))
             return
 
         click.echo("\n" + "=" * 50)
-        click.echo(f"  [{account}] 계좌 평가 현황")
+        click.echo(f"  [{real_acct}] 계좌 평가 현황")
         click.echo("=" * 50)
-        click.echo(f"계좌 번호   : {account}")
+        click.echo(f"계좌 번호   : {real_acct}")
         click.echo(f"추정예탁자산 : {format_currency(res.get('prsm_dpst_aset_amt'))} 원")
         click.echo(f"총 매입금액  : {format_currency(res.get('tot_pur_amt'))} 원")
         click.echo(f"총 평가금액  : {format_currency(res.get('tot_evlt_amt'))} 원")
@@ -76,7 +100,7 @@ def balance(ctx):
             return
 
         click.echo("\n" + "=" * 90)
-        click.echo(f"  [{account}] 보유 종목 현황")
+        click.echo(f"  [{real_acct}] 보유 종목 현황")
         click.echo("=" * 90)
         click.echo(f"{'종목코드':<8} | {'종목명':<16} | {'보유수량':<8} | {'매입단가':<10} | {'현재가':<10} | {'평가손익':<12} | {'수익률':<8}")
         click.echo("-" * 90)
