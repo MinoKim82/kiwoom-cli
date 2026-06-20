@@ -10,19 +10,19 @@ def test_token_auto_refresh_needed(requests_mock):
     class MockConfigManager:
         def __init__(self):
             self.saved = False
-        def load_credentials(self, user_id):
+        def load_credentials(self, account):
             return {"appkey": "my_appkey", "secretkey": "my_secretkey"}
-        def load_token(self, user_id):
+        def load_token(self, account):
             # 15분 전에 만료된 토큰 시뮬레이션
             expired_time = (datetime.now() - timedelta(minutes=15)).strftime("%Y%m%d%H%M%S")
             return {"token": "expired_token", "expires_dt": expired_time}
-        def save_token(self, user_id, token, expires_dt):
+        def save_token(self, account, token, expires_dt):
             self.saved = True
             self.token = token
             self.expires_dt = expires_dt
 
     mcm = MockConfigManager()
-    client = KiwoomClient(user_id="user1", config_manager=mcm, host="https://mockapi.kiwoom.com")
+    client = KiwoomClient(account="1234567890", config_manager=mcm, host="https://mockapi.kiwoom.com")
 
     # oauth2/token API 모킹
     new_expires_dt = (datetime.now() + timedelta(hours=24)).strftime("%Y%m%d%H%M%S")
@@ -43,17 +43,17 @@ def test_token_auto_refresh_needed(requests_mock):
 
 def test_request_api_post(requests_mock):
     class MockConfigManager:
-        def load_credentials(self, user_id):
+        def load_credentials(self, account):
             return {"appkey": "my_appkey", "secretkey": "my_secretkey"}
-        def load_token(self, user_id):
+        def load_token(self, account):
             # 만료되지 않은 토큰
             valid_time = (datetime.now() + timedelta(hours=1)).strftime("%Y%m%d%H%M%S")
             return {"token": "valid_token", "expires_dt": valid_time}
-        def save_token(self, user_id, token, expires_dt):
+        def save_token(self, account, token, expires_dt):
             pass
 
     mcm = MockConfigManager()
-    client = KiwoomClient(user_id="user1", config_manager=mcm, host="https://mockapi.kiwoom.com")
+    client = KiwoomClient(account="1234567890", config_manager=mcm, host="https://mockapi.kiwoom.com")
 
     # POST API 모킹
     requests_mock.post(
@@ -87,16 +87,16 @@ def test_request_api_post(requests_mock):
 
 def test_request_api_get(requests_mock):
     class MockConfigManager:
-        def load_credentials(self, user_id):
+        def load_credentials(self, account):
             return {"appkey": "my_appkey", "secretkey": "my_secretkey"}
-        def load_token(self, user_id):
+        def load_token(self, account):
             valid_time = (datetime.now() + timedelta(hours=1)).strftime("%Y%m%d%H%M%S")
             return {"token": "valid_token", "expires_dt": valid_time}
-        def save_token(self, user_id, token, expires_dt):
+        def save_token(self, account, token, expires_dt):
             pass
 
     mcm = MockConfigManager()
-    client = KiwoomClient(user_id="user1", config_manager=mcm, host="https://mockapi.kiwoom.com")
+    client = KiwoomClient(account="1234567890", config_manager=mcm, host="https://mockapi.kiwoom.com")
 
     # GET API 모킹
     requests_mock.get(
@@ -122,16 +122,16 @@ def test_request_api_get(requests_mock):
 
 def test_token_auto_refresh_fail_with_error_code(requests_mock):
     class MockConfigManager:
-        def load_credentials(self, user_id):
+        def load_credentials(self, account):
             return {"appkey": "my_appkey", "secretkey": "my_secretkey"}
-        def load_token(self, user_id):
+        def load_token(self, account):
             expired_time = (datetime.now() - timedelta(minutes=15)).strftime("%Y%m%d%H%M%S")
             return {"token": "expired_token", "expires_dt": expired_time}
-        def save_token(self, user_id, token, expires_dt):
+        def save_token(self, account, token, expires_dt):
             pass
 
     mcm = MockConfigManager()
-    client = KiwoomClient(user_id="user1", config_manager=mcm, host="https://mockapi.kiwoom.com")
+    client = KiwoomClient(account="1234567890", config_manager=mcm, host="https://mockapi.kiwoom.com")
 
     requests_mock.post("https://mockapi.kiwoom.com/oauth2/token", json={
         "return_code": 9999,
@@ -145,14 +145,14 @@ def test_token_auto_refresh_fail_with_error_code(requests_mock):
 
 def test_request_api_fail_with_error_code(requests_mock):
     class MockConfigManager:
-        def load_credentials(self, user_id):
+        def load_credentials(self, account):
             return {"appkey": "my_appkey", "secretkey": "my_secretkey"}
-        def load_token(self, user_id):
+        def load_token(self, account):
             valid_time = (datetime.now() + timedelta(hours=1)).strftime("%Y%m%d%H%M%S")
             return {"token": "valid_token", "expires_dt": valid_time}
 
     mcm = MockConfigManager()
-    client = KiwoomClient(user_id="user1", config_manager=mcm, host="https://mockapi.kiwoom.com")
+    client = KiwoomClient(account="1234567890", config_manager=mcm, host="https://mockapi.kiwoom.com")
 
     requests_mock.post(
         "https://mockapi.kiwoom.com/v1/mock-endpoint",
@@ -162,5 +162,6 @@ def test_request_api_fail_with_error_code(requests_mock):
     with pytest.raises(Exception) as excinfo:
         client.request_api(endpoint="/v1/mock-endpoint", method="POST")
     assert "API Error (code: -100): System Maintenance" in str(excinfo.value)
+
 
 

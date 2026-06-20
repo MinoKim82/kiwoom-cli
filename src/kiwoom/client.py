@@ -3,13 +3,13 @@ from datetime import datetime, timedelta
 
 
 class KiwoomClient:
-    def __init__(self, user_id, config_manager, host="https://api.kiwoom.com"):
-        self.user_id = user_id
+    def __init__(self, account, config_manager, host="https://api.kiwoom.com"):
+        self.account = account
         self.config_manager = config_manager
         self.host = host
 
     def get_valid_token(self):
-        token_info = self.config_manager.load_token(self.user_id)
+        token_info = self.config_manager.load_token(self.account)
         token = token_info.get("token")
         expires_dt_str = token_info.get("expires_dt")
 
@@ -26,7 +26,7 @@ class KiwoomClient:
                 pass
 
         if refresh_needed:
-            creds = self.config_manager.load_credentials(self.user_id)
+            creds = self.config_manager.load_credentials(self.account)
             token_url = f"{self.host}/oauth2/token"
             headers = {"Content-Type": "application/json;charset=UTF-8"}
             body = {
@@ -43,7 +43,7 @@ class KiwoomClient:
                 
             new_token = res_json["token"]
             new_expires = res_json["expires_dt"]
-            self.config_manager.save_token(self.user_id, new_token, new_expires)
+            self.config_manager.save_token(self.account, new_token, new_expires)
             return new_token
 
     def request_api(self, endpoint, method="POST", data=None, api_id=None, cont_yn="N", next_key="") -> tuple[dict, dict]:
@@ -75,19 +75,10 @@ class KiwoomClient:
 
         return res_json, res.headers
 
-    def get_accounts(self) -> list:
-        res_data, _ = self.request_api(
-            endpoint="/api/dostk/acnt",
-            method="POST",
-            data={},
-            api_id="ka00001"
-        )
-        acct = res_data.get("acctNo")
-        if acct:
-            return [acct]
-        return []
+    def get_balance(self, acct_no: str = None) -> dict:
+        if acct_no is None:
+            acct_no = self.account
 
-    def get_balance(self, acct_no: str) -> dict:
         all_holdings = []
         cont_yn = "N"
         next_key = ""
@@ -130,4 +121,5 @@ class KiwoomClient:
 
         summary_data["acnt_evlt_remn_indv_tot"] = all_holdings
         return summary_data
+
 
