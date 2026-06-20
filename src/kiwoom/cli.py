@@ -123,33 +123,29 @@ def balance(ctx, acct, format):
                 handle_error(ctx, str(e), fmt)
             results.append((alias, {"error": str(e)}))
 
-    if fmt == "json":
-        out_list = []
-        for alias, res in results:
+    if account_alias:
+        # 단일 계좌 조회 시
+        if fmt == "json":
+            alias, res = results[0]
             if "error" in res:
-                out_list.append({
+                out = {
                     "account": alias,
                     "acct_no": alias,
                     "balance": {"error": res["error"]}
-                })
+                }
             else:
-                out_list.append({
+                out = {
                     "account": alias,
                     "acct_no": res.get("acct_no", alias),
                     "balance": res
-                })
-        if account_alias:
-            click.echo(json.dumps(out_list[0], ensure_ascii=False))
-        else:
-            click.echo(json.dumps(out_list, ensure_ascii=False))
-        return
+                }
+            click.echo(json.dumps(out, ensure_ascii=False))
+            return
 
-    for idx, (alias, res) in enumerate(results):
-        if idx > 0:
-            click.echo("\n" + "=" * 90)
+        alias, res = results[0]
         if "error" in res:
             click.echo(f"\n[{alias}] 계좌 잔고 조회 실패: {res['error']}")
-            continue
+            return
 
         real_acct = res.get("acct_no", alias)
         acct_8 = get_8_digit_acct_no(real_acct)
@@ -167,7 +163,7 @@ def balance(ctx, acct, format):
         holdings = res.get("acnt_evlt_remn_indv_tot", [])
         if not holdings:
             click.echo("\n보유 주식이 없습니다.")
-            continue
+            return
 
         click.echo("\n" + "=" * 90)
         click.echo(f"  [{acct_8}] 보유 종목 현황")
@@ -187,6 +183,104 @@ def balance(ctx, acct, format):
             
             click.echo(f"{code:<8} | {name:<16} | {qty:<8} | {pur_uv:<10} | {cur_prc:<10} | {pl_amt_str:>12} | {pl_rt:>8}")
         click.echo("=" * 90)
+        return
+
+    # 전체 계좌 조회 시 (account_alias가 지정되지 않음)
+    total_prsm_dpst = 0.0
+    total_pur_amt = 0.0
+    total_evlt_amt = 0.0
+    total_evlt_pl = 0.0
+    combined_holdings = []
+    errors = []
+
+    for alias, res in results:
+        if "error" in res:
+            errors.append((alias, res["error"]))
+        else:
+            try:
+                total_prsm_dpst += float(res.get("prsm_dpst_aset_amt") or 0)
+                total_pur_amt += float(res.get("tot_pur_amt") or 0)
+                total_evlt_amt += float(res.get("tot_evlt_amt") or 0)
+                total_evlt_pl += float(res.get("tot_evlt_pl") or 0)
+            except (ValueError, TypeError):
+                pass
+            combined_holdings.extend(res.get("acnt_evlt_remn_indv_tot") or [])
+
+    if total_pur_amt != 0:
+        total_prft_rt = (total_evlt_pl / total_pur_amt) * 100.0
+    else:
+        total_prft_rt = 0.0
+
+    if fmt == "json":
+        out_accounts = []
+        for alias, res in results:
+            if "error" in res:
+                out_accounts.append({
+                    "account": alias,
+                    "acct_no": alias,
+                    "balance": {"error": res["error"]}
+                })
+            else:
+                out_accounts.append({
+                    "account": alias,
+                    "acct_no": res.get("acct_no", alias),
+                    "balance": res
+                })
+        
+        total_obj = {
+            "tot_pur_amt": f"{int(total_pur_amt)}",
+            "tot_evlt_amt": f"{int(total_evlt_amt)}",
+            "tot_evlt_pl": f"{int(total_evlt_pl)}",
+            "tot_prft_rt": f"{total_prft_rt:.2f}",
+            "prsm_dpst_aset_amt": f"{int(total_prsm_dpst)}",
+            "acnt_evlt_remn_indv_tot": combined_holdings
+        }
+
+        click.echo(json.dumps({
+            "accounts": out_accounts,
+            "total": total_obj
+        }, ensure_ascii=False))
+        return
+
+    # 텍스트 포맷 전체 통합 조회
+    click.echo("\n" + "=" * 50)
+    click.echo("  [전체 계좌] 통합 평가 현황")
+    click.echo("=" * 50)
+    click.echo(f"추정예탁자산 : {format_currency(total_prsm_dpst)} 원")
+    click.echo(f"총 매입금액  : {format_currency(total_pur_amt)} 원")
+    click.echo(f"총 평가금액  : {format_currency(total_evlt_amt)} 원")
+    click.echo(f"총 평가손익  : {format_currency(total_evlt_pl)} 원")
+    click.echo(f"총 수익률    : {format_percent(total_prft_rt)}")
+    click.echo("=" * 50)
+
+    if not combined_holdings:
+        click.echo("\n통합 보유 주식이 없습니다.")
+    else:
+        click.echo("\n" + "=" * 90)
+        click.echo("  [전체 계좌] 통합 보유 종목 현황")
+        click.echo("=" * 90)
+        click.echo(f"{'종목코드':<8} | {'종목명':<16} | {'보유수량':<8} | {'매입단가':<10} | {'현재가':<10} | {'평가손익':<12} | {'수익률':<8}")
+        click.echo("-" * 90)
+        
+        for stock in combined_holdings:
+            code = stock.get("stk_cd", "").replace("A", "")
+            name = stock.get("stk_nm", "")
+            qty = f"{int(float(stock.get('rmnd_qty', 0)))} 주"
+            pur_uv = f"{format_currency(stock.get('pur_pric'))} 원"
+            cur_prc = f"{format_currency(stock.get('cur_prc'))} 원"
+            pl_amt = format_currency(stock.get('evltv_prft'))
+            pl_amt_str = f"+{pl_amt}" if float(stock.get('evltv_prft', 0)) > 0 else pl_amt
+            pl_rt = format_percent(stock.get('prft_rt'))
+            
+            click.echo(f"{code:<8} | {name:<16} | {qty:<8} | {pur_uv:<10} | {cur_prc:<10} | {pl_amt_str:>12} | {pl_rt:>8}")
+        click.echo("=" * 90)
+
+    if errors:
+        click.echo("\n" + "-" * 50)
+        click.echo("=== 일부 계좌 조회 실패 목록 ===")
+        for alias, err_msg in errors:
+            click.echo(f" [{alias}] 에러: {err_msg}")
+        click.echo("-" * 50)
 
 if __name__ == "__main__":
     main()

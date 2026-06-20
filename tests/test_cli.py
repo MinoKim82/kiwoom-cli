@@ -209,14 +209,21 @@ def test_cli_balance_all_accounts_json(requests_mock):
 
         assert result.exit_code == 0
         parsed = json.loads(result.output)
-        assert isinstance(parsed, list)
-        assert len(parsed) == 2
-        assert parsed[0]["account"] == "mh_default"
-        assert parsed[0]["acct_no"] == "1234567810"
-        assert parsed[0]["balance"]["tot_pur_amt"] == "1000"
-        assert parsed[1]["account"] == "mh_sub"
-        assert parsed[1]["acct_no"] == "9876543204"
-        assert parsed[1]["balance"]["tot_pur_amt"] == "2000"
+        assert isinstance(parsed, dict)
+        assert "accounts" in parsed
+        assert "total" in parsed
+
+        accounts = parsed["accounts"]
+        assert len(accounts) == 2
+        assert accounts[0]["account"] == "mh_default"
+        assert accounts[0]["acct_no"] == "1234567810"
+        assert accounts[0]["balance"]["tot_pur_amt"] == "1000"
+        assert accounts[1]["account"] == "mh_sub"
+        assert accounts[1]["acct_no"] == "9876543204"
+        assert accounts[1]["balance"]["tot_pur_amt"] == "2000"
+
+        total = parsed["total"]
+        assert total["tot_pur_amt"] == "3000"
 
 def test_cli_balance_single_account_error(requests_mock):
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -290,19 +297,26 @@ def test_cli_balance_all_accounts_with_partial_error(requests_mock):
         # Multi-account queries must isolate errors and not abort. So exit_code is 0.
         assert result.exit_code == 0
         parsed = json.loads(result.output)
-        assert isinstance(parsed, list)
-        assert len(parsed) == 2
+        assert isinstance(parsed, dict)
+        assert "accounts" in parsed
+        assert "total" in parsed
+
+        accounts = parsed["accounts"]
+        assert len(accounts) == 2
 
         # First account: success
-        assert parsed[0]["account"] == "mh_default"
-        assert parsed[0]["acct_no"] == "1234567810"
-        assert parsed[0]["balance"]["tot_pur_amt"] == "1000"
+        assert accounts[0]["account"] == "mh_default"
+        assert accounts[0]["acct_no"] == "1234567810"
+        assert accounts[0]["balance"]["tot_pur_amt"] == "1000"
 
         # Second account: failure
-        assert parsed[1]["account"] == "mh_sub"
-        assert parsed[1]["acct_no"] == "mh_sub"
-        assert "error" in parsed[1]["balance"]
-        assert "500 Server Error" in parsed[1]["balance"]["error"]
+        assert accounts[1]["account"] == "mh_sub"
+        assert accounts[1]["acct_no"] == "mh_sub"
+        assert "error" in accounts[1]["balance"]
+        assert "500 Server Error" in accounts[1]["balance"]["error"]
+
+        total = parsed["total"]
+        assert total["tot_pur_amt"] == "1000"
 
 def test_cli_balance_all_accounts_with_partial_error_text(requests_mock):
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -339,10 +353,12 @@ def test_cli_balance_all_accounts_with_partial_error_text(requests_mock):
 
         # Text mode should also complete with exit code 0
         assert result.exit_code == 0
-        # First account shows success output
-        assert "[12345678] 계좌 평가 현황" in result.output
-        # Second account shows failure message
-        assert "[mh_sub] 계좌 잔고 조회 실패: 500 Server Error" in result.output
+        # Shows total assessment summary
+        assert "[전체 계좌] 통합 평가 현황" in result.output
+        assert "총 매입금액  : 1,000 원" in result.output
+        # Shows failure message in failures block
+        assert "=== 일부 계좌 조회 실패 목록 ===" in result.output
+        assert "[mh_sub] 에러: 500 Server Error" in result.output
 
 def test_cli_subcommand_format_override(requests_mock):
     with tempfile.TemporaryDirectory() as tmpdir:
